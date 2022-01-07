@@ -1,10 +1,12 @@
 require 'set'
+require 'json'
 
 require_relative 'fields.rb'
 include Fields
 require_relative 'table.rb'
 include TableDefintion
 require_relative 'tableDiff.rb'
+require_relative 'migration.rb'
 
 class User < Table
     attr_accessor :table
@@ -28,10 +30,9 @@ class User2 < Table
     end
 end
 
-for k, changes in tableDiff(User.new, User2.new)
-    for change in changes
-        print k, ": ", change.to_s, "\n"
-    end
-end
+obj = JSON.dump(User.new)
+such = Table.json_create(JSON.parse(obj))
 
-print User.new()
+difference = Migration.new([such]).diff(Migration.new([User2.new]))
+
+printDiffs(difference)

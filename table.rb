@@ -1,3 +1,4 @@
+require 'json'
 require_relative 'fields.rb'
 include Fields
 require_relative 'constraints.rb'
@@ -94,7 +95,45 @@ module TableDefintion
             self.set_name(value)
         end
 
+        def name
+            return @table.name
+        end
+
         def create()
+        end
+
+        def self.json_create(o)
+            object = o["object"]
+            constraints = o["constraints"]
+            name = o["name"]
+            this = new()
+            this.name = name
+            this.table.obj = {}
+            this.table.constraints = {}
+            for k, field in object
+                this.table.obj[k.to_sym] = Fields::fieldMap[field["json_class"]].json_create(field)
+            end
+            for k, k_constraints in constraints
+                this.table.constraints[k.to_sym] = Set.new
+                for k_constraint in k_constraints
+                    k_real_constraint = Constraints::fieldMap[k_constraint["json_class"]].json_create(k_constraint)
+                    this.table.constraints[k.to_sym].add(k_real_constraint)
+                end
+            end
+            return this
+        end
+
+        def to_json(*args)
+            constraints = {}
+            for k, constraint in @table.constraints
+                constraints[k] = []
+            end
+            for k, k_constraints in @table.constraints
+                for k_constraint in k_constraints
+                    constraints[k].append(k_constraint)
+                end
+            end
+            return { 'json_class' => self.class.name, "name" => self.name, 'object' => @table.obj, "constraints" =>  constraints}.to_json(*args)
         end
 
         def to_s()

@@ -1,6 +1,8 @@
 require 'set'
+require 'json'
 
 module Fields
+    attr_accessor :fieldMap
     module IntTypes
         Tiny = "TINY"
         Small = "SMALL"
@@ -33,6 +35,15 @@ module Fields
             return true
         end
 
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => {"field_type" => @field_type} }.to_json(*a)
+        end
+
+        def self.json_create(o)
+            data = o['data']
+            new(field_type: data["field_type"])
+        end
+
         def to_s
             return @field_type + "INT"
         end
@@ -57,6 +68,15 @@ module Fields
                 return false 
             end
             return true
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => {"max_length" => @max_length} }.to_json(*a)
+        end
+
+        def self.json_create(o)
+            data = o['data']
+            new(max_length: data["max_length"])
         end
 
         def to_s
@@ -91,5 +111,20 @@ module Fields
             end
             return "TEXT(" + @max_length.to_s + ")"
         end
+
+        def self.json_create(o)
+            data = o['data']
+            new(max_length: data["max_length"])
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => {"max_length" => @max_length} }.to_json(*a)
+        end
     end
+
+    @fieldMap = {
+        "Fields::IntField" => IntField,
+        "Fields::CharField" => CharField,
+        "Fields::TextField" => TextField,
+    }
 end

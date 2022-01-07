@@ -97,3 +97,14 @@ def tableDiff(oldObj, newObj)
     end
     return aggregateChanges(changes)
 end
+
+def printDiffs(difference)
+    for k, changeTable in difference
+        print " -- ", k, " -- \n"
+        for k, changes in changeTable
+            for change in changes
+                print k, ": ", change, "\n"
+            end
+        end
+    end
+end

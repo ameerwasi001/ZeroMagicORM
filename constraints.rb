@@ -1,4 +1,6 @@
 module Constraints
+    attr_accessor :fieldMap
+
     class Nullable
         def ==(other)
             return other.is_a? Nullable
@@ -16,6 +18,14 @@ module Constraints
 
         def to_s
             return "NULL"
+        end
+
+        def self.json_create(o)
+            new(*o['data'])
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => [] }.to_json(*a)
         end
     end
 
@@ -37,6 +47,14 @@ module Constraints
         def to_s
             return "NOT NULL"
         end
+
+        def self.json_create(o)
+            new(*o['data'])
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => [] }.to_json(*a)
+        end
     end
 
     class Unique
@@ -56,6 +74,14 @@ module Constraints
 
         def to_s
             return "UNIQUE"
+        end
+
+        def self.json_create(o)
+            new(*o['data'])
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => [] }.to_json(*a)
         end
     end
 
@@ -77,5 +103,20 @@ module Constraints
         def to_s
             return "AUTO INCREMENT"
         end
+
+        def self.json_create(o)
+            new(*o['data'])
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => [] }.to_json(*a)
+        end
     end
+
+    @fieldMap = {
+        "Constraints::Nullable" => Nullable,
+        "Constraints::NotNull" => NotNull,
+        "Constraints::AutoIncrement" => AutoIncrement,
+        "Constraints::Unique" => Unique,
+    }
 end
