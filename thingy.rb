@@ -7,13 +7,14 @@ require_relative 'table.rb'
 include TableDefintion
 require_relative 'tableDiff.rb'
 require_relative 'migration.rb'
+require_relative 'platforms.rb'
 
 class User < Table
     attr_accessor :table
 
     def create
         self.name = "User"
-        @table[:username] = CharField.new(max_length: 128, constraints: [Unique.new, AutoIncrement.new])
+        @table[:username] = CharField.new(max_length: 128, constraints: [Unique.new])
         @table[:password] = CharField.new(max_length: 255)
         @table[:bio] = TextField.new(constraints: [Nullable.new])
     end
@@ -33,6 +34,7 @@ end
 obj = JSON.dump(User.new)
 such = Table.json_create(JSON.parse(obj))
 
-difference = Migration.new([such]).diff(Migration.new([User2.new]))
+sql = Migration.new([]).to_sql(Migration.new([User2.new]), Platforms::SQLITE)
+print sql, "\n"
 
-printDiffs(difference)
+Migration.new([]).migrate_to("./file.db", Migration.new([User2.new]), Platforms::SQLITE)

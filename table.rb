@@ -54,6 +54,20 @@ module TableDefintion
             return self.set(key, val, val._constraints)
         end
 
+        def to_sql(platform)
+            res = []
+            for k, v in self.obj
+                k_constraints = constraints[k]
+                constraints = k_constraints.to_a.map{|x| x.to_sql(platform)}
+                if k == :id and Platforms::SQLITE == platform
+                    res.append(k.to_s + " INTEGER NOT NULL PRIMARY KEY")
+                else
+                    res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.join(" "))
+                end
+            end
+            return res.join(",\n")
+        end
+
         def to_s()
             arr = []
             for k, v in @obj
@@ -121,6 +135,10 @@ module TableDefintion
                 end
             end
             return this
+        end
+
+        def to_sql(platform)
+            self.table.to_sql(platform)
         end
 
         def to_json(*args)

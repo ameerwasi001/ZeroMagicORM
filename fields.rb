@@ -44,6 +44,14 @@ module Fields
             new(field_type: data["field_type"])
         end
 
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
+        end
+
         def to_s
             return @field_type + "INT"
         end
@@ -77,6 +85,14 @@ module Fields
         def self.json_create(o)
             data = o['data']
             new(max_length: data["max_length"])
+        end
+
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
         end
 
         def to_s
@@ -115,6 +131,14 @@ module Fields
         def self.json_create(o)
             data = o['data']
             new(max_length: data["max_length"])
+        end
+
+        def to_sql
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
         end
 
         def to_json(*a)

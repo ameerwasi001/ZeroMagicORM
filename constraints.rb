@@ -1,3 +1,5 @@
+require_relative 'platforms.rb'
+
 module Constraints
     attr_accessor :fieldMap
 
@@ -18,6 +20,14 @@ module Constraints
 
         def to_s
             return "NULL"
+        end
+
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
         end
 
         def self.json_create(o)
@@ -48,6 +58,14 @@ module Constraints
             return "NOT NULL"
         end
 
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
+        end
+
         def self.json_create(o)
             new(*o['data'])
         end
@@ -62,7 +80,13 @@ module Constraints
             return other.is_a? Unique
         end
         
-        alias eql? ==
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
+        end
 
         def hash
             return "Unique".hash
@@ -74,6 +98,14 @@ module Constraints
 
         def to_s
             return "UNIQUE"
+        end
+
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return self.to_s
+            else
+                unsupported_platform(platform)
+            end
         end
 
         def self.json_create(o)
@@ -102,6 +134,14 @@ module Constraints
 
         def to_s
             return "AUTO INCREMENT"
+        end
+
+        def to_sql(platform)
+            if platform == Platforms::SQLITE
+                return "AUTOINCREMENT"
+            else
+                unsupported_platform(platform)
+            end
         end
 
         def self.json_create(o)
