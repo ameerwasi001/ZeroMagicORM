@@ -23,7 +23,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::POSTGRES
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -59,7 +59,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::POSTGRES
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -81,7 +81,7 @@ module Constraints
         end
         
         def to_sql(platform)
-            if platform == Platforms::POSTGRES
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -101,7 +101,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::POSTGRES
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -137,7 +137,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::POSTGRES
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return "AUTO INCREMENT"
             else
                 unsupported_platform(platform)
