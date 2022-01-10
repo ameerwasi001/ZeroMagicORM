@@ -23,7 +23,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -59,7 +59,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -81,7 +81,7 @@ module Constraints
         end
         
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -101,7 +101,7 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -121,7 +121,7 @@ module Constraints
         def ==(other)
             return other.is_a? AutoIncrement
         end
-        
+
         alias eql? ==
 
         def hash
@@ -137,8 +137,8 @@ module Constraints
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
-                return "AUTOINCREMENT"
+            if platform == Platforms::POSTGRES
+                return "AUTO INCREMENT"
             else
                 unsupported_platform(platform)
             end

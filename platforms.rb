@@ -1,5 +1,6 @@
 module Platforms
     SQLITE = "SQLITE"
+    POSTGRES = "POSTGRES"
 end
 
 def unsupported_platform(platform)

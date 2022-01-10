@@ -59,10 +59,15 @@ module TableDefintion
             for k, v in self.obj
                 k_constraints = constraints[k]
                 constraints = k_constraints.to_a.map{|x| x.to_sql(platform)}
-                if k == :id and Platforms::SQLITE == platform
-                    res.append(k.to_s + " INTEGER NOT NULL PRIMARY KEY")
+                if Platforms::POSTGRES == platform and k_constraints.include?(Constraints::AutoIncrement.new)
+                    rectified_constraints = constraints.select{|x| x != Constraints::AutoIncrement.new.to_sql(platform)}
+                    res.append(k.to_s + " SERIAL " + rectified_constraints.join(" ") + " PRIMARY KEY")
                 else
-                    res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.join(" "))
+                    if k == :id and Platforms::SQLITE == platform
+                        res.append(k.to_s + " INTEGER NOT NULL PRIMARY KEY")
+                    else
+                        res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.join(" "))
+                    end
                 end
             end
             return res.join(",\n")

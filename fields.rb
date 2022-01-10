@@ -45,7 +45,7 @@ module Fields
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -88,7 +88,7 @@ module Fields
         end
 
         def to_sql(platform)
-            if platform == Platforms::SQLITE
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)
@@ -134,7 +134,7 @@ module Fields
         end
 
         def to_sql
-            if platform == Platforms::SQLITE
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
                 unsupported_platform(platform)

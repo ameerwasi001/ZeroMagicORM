@@ -1,6 +1,8 @@
-require 'sqlite3'
+require 'pg'
 
-def sqlite_query(file, q)
-    client = SQLite3::Database.new 'file.db'
-    return client.execute(q)
+DBAuth = Struct.new(:host, :port, :db, :user, :pass)
+
+def pg_query(auth, q)
+    conn = PG.connect(auth.host, auth.port, "", "", auth.db, auth.user, auth.pass)
+    return conn.exec(q)
 end

@@ -98,8 +98,8 @@ class Migration
         return str
     end
 
-    def migrate_to(fn, newSchema, platform)
+    def migrate_to(dbAuth, newSchema, platform)
         sql = self.to_sql(newSchema, platform)
-        sqlite_query(fn, sql)
+        pg_query(dbAuth, sql)
     end
 end
