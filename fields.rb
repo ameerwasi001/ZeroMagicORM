@@ -133,7 +133,7 @@ module Fields
             new(max_length: data["max_length"])
         end
 
-        def to_sql
+        def to_sql(platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else

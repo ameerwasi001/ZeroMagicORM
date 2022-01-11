@@ -36,7 +36,12 @@ dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
 obj = JSON.dump(User.new)
 such = Table.json_create(JSON.parse(obj))
 
-sql = Migration.new([]).to_sql(Migration.new([User2.new]), Platforms::POSTGRES)
+sql = Migration.new([]).to_sql(Migration.new([User.new]), Platforms::POSTGRES)
 print sql, "\n"
 
-Migration.new([]).migrate_to(dbAuth, Migration.new([User2.new]), Platforms::POSTGRES)
+Migration.new([]).migrate_to(dbAuth, Migration.new([User.new]), Platforms::POSTGRES)
+
+sql = Migration.new([such]).to_sql(Migration.new([User2.new]), Platforms::POSTGRES)
+print sql, "\n"
+
+Migration.new([such]).migrate_to(dbAuth, Migration.new([User2.new]), Platforms::POSTGRES)

@@ -4,6 +4,11 @@ include Fields
 require_relative 'constraints.rb'
 include Constraints
 
+def constraint_name(name, k, constraint)
+    cons = constraint.split(" ").join("_")
+    return "#{name}_#{k}_#{cons}"
+end
+
 module TableDefintion
     class DataTable
         attr_accessor :obj, :constraints, :defaults, :name
@@ -61,12 +66,12 @@ module TableDefintion
                 constraints = k_constraints.to_a.map{|x| x.to_sql(platform)}
                 if Platforms::POSTGRES == platform and k_constraints.include?(Constraints::AutoIncrement.new)
                     rectified_constraints = constraints.select{|x| x != Constraints::AutoIncrement.new.to_sql(platform)}
-                    res.append(k.to_s + " SERIAL " + rectified_constraints.join(" ") + " PRIMARY KEY")
+                    res.append(k.to_s + " SERIAL " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " PRIMARY KEY")
                 else
                     if k == :id and Platforms::SQLITE == platform
-                        res.append(k.to_s + " INTEGER NOT NULL PRIMARY KEY")
+                        res.append(k.to_s + " INTEGER CONSTRAINT NOT NULL PRIMARY KEY")
                     else
-                        res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.join(" "))
+                        res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" "))
                     end
                 end
             end

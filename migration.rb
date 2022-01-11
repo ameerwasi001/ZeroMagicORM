@@ -90,7 +90,14 @@ class Migration
         str = ""
         for k, v in changes
             if v.is_a? ChangeTable
-                # str += "CREATE TABLE " + k + "(\n" + v.to_sql + "\n);\n"
+                str += "ALTER TABLE " + k + "_ \n"
+                arr = []
+                for _, changes in v.changeTable
+                    for change in changes
+                        arr.append(change.to_sql(platform))
+                    end
+                end
+                str += arr.map{|x| "  " + x}.join(",\n") + ";"
             else
                 str += "CREATE TABLE " + k + "_ (\n" + indent(v.to_sql(platform)) + "\n);\n"
             end

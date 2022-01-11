@@ -79,7 +79,9 @@ module Constraints
         def ==(other)
             return other.is_a? Unique
         end
-        
+
+        alias eql? ==
+
         def to_sql(platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
@@ -89,7 +91,7 @@ module Constraints
         end
 
         def hash
-            return "Unique".hash
+            return "UNIQUE".hash
         end
 
         def contradictions
