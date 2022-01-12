@@ -59,14 +59,21 @@ module TableDefintion
             return self.set(key, val, val._constraints)
         end
 
-        def to_sql(platform)
+        def to_sql(ctx, platform)
             res = []
             for k, v in self.obj
                 k_constraints = constraints[k]
                 constraints = k_constraints.to_a.map{|x| x.to_sql(platform)}
                 if Platforms::POSTGRES == platform and k_constraints.include?(Constraints::AutoIncrement.new)
                     rectified_constraints = constraints.select{|x| x != Constraints::AutoIncrement.new.to_sql(platform)}
-                    res.append(k.to_s + " SERIAL " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " PRIMARY KEY")
+                    seq_name = "#{self.name}__#{k}_seq"
+                    ctx.add_start("CREATE SEQUENCE #{seq_name}")
+                    ctx.add_end("ALTER SEQUENCE #{seq_name} OWNED BY #{self.name}_.#{k.to_s}")
+                    str = k.to_s + " " + v.to_sql(platform) + " " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " DEFAULT NEXTVAL('#{seq_name}')"
+                    if k == :id
+                        str += " PRIMARY KEY"
+                    end
+                    res.append(str)
                 else
                     if k == :id and Platforms::SQLITE == platform
                         res.append(k.to_s + " INTEGER CONSTRAINT NOT NULL PRIMARY KEY")
@@ -147,8 +154,8 @@ module TableDefintion
             return this
         end
 
-        def to_sql(platform)
-            self.table.to_sql(platform)
+        def to_sql(ctx, platform)
+            self.table.to_sql(ctx, platform)
         end
 
         def to_json(*args)

@@ -30,6 +30,22 @@ module Constraints
             end
         end
 
+        def add_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ALTER COLUMN " + column.to_s + " DROP NOT NULL"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def remove_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ALTER COLUMN " + column.to_s + " SET NOT NULL"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
         def self.json_create(o)
             new(*o['data'])
         end
@@ -61,6 +77,22 @@ module Constraints
         def to_sql(platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def add_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ALTER COLUMN " + column.to_s + " SET NOT NULL"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def remove_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ALTER COLUMN " + column.to_s + " DROP NOT NULL"
             else
                 unsupported_platform(platform)
             end
@@ -110,6 +142,22 @@ module Constraints
             end
         end
 
+        def add_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ADD CONSTRAINT " + constraint_name(table_name, column.to_s, self.to_sql(platform)) + " UNIQUE (" + column.to_s + ")"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def remove_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "DROP CONSTRAINT " + constraint_name(table_name, column.to_s, self.to_sql(platform))
+            else
+                unsupported_platform(platform)
+            end
+        end
+
         def self.json_create(o)
             new(*o['data'])
         end
@@ -141,6 +189,24 @@ module Constraints
         def to_sql(platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return "AUTO INCREMENT"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def add_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                ctx.add_start("CREATE SEQUENCE #{@table_name}__#{@key.to_s}_seq")
+                ctx.add_end("ALTER SEQUENCE #{@table_name}__#{@key.to_s}_seq OWNED BY #{@table_name}_.#{@key.to_s}")
+                return "ALTER COLUMN " + column.to_s + " SET DEFAULT NEXTVAL('#{table_name}__#{column.to_s}_seq')"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def remove_constraint_sql(ctx, platform, table_name, column)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                return "ALTER COLUMN " + column.to_s + " SET DEFAULT(0)"
             else
                 unsupported_platform(platform)
             end

@@ -1,15 +1,6 @@
 require_relative 'tableDiff.rb'
 require_relative 'connection.rb'
-
-def indent(str)
-    arr = str.split("\n")
-    i = 0
-    while i < arr.length
-        arr[i] = "  " + arr[i]
-        i += 1
-    end
-    return arr.join("\n")
-end
+require_relative 'utils.rb'
 
 class AddTable
     attr_accessor :tableName, :newDef
@@ -19,8 +10,8 @@ class AddTable
         @newDef = tableDef
     end
 
-    def to_sql(platform)
-        return @newDef.to_sql(platform)
+    def to_sql(ctx, platform)
+        return @newDef.to_sql(ctx, platform)
     end
 end
 
@@ -43,8 +34,14 @@ class ChangeTable
         return res
     end
 
-    def to_sql(platform)
-        return @newDef.to_sql(platform)
+    def to_sql(ctx, platform)
+        arr = []
+        for _, changes in @changeTable
+            for change in changes
+                arr.append(change.to_sql(ctx, platform))
+            end
+        end
+        return arr.map{|x| "  " + x}.join(",\n") + ";"
     end
 end
 
@@ -88,21 +85,16 @@ class Migration
     def to_sql(newScheme, platform)
         changes = self.diff(newScheme)
         str = ""
+        ctx = Context.new([], [])
         for k, v in changes
             if v.is_a? ChangeTable
                 str += "ALTER TABLE " + k + "_ \n"
-                arr = []
-                for _, changes in v.changeTable
-                    for change in changes
-                        arr.append(change.to_sql(platform))
-                    end
-                end
-                str += arr.map{|x| "  " + x}.join(",\n") + ";"
+                str += v.to_sql(ctx, platform)
             else
-                str += "CREATE TABLE " + k + "_ (\n" + indent(v.to_sql(platform)) + "\n);\n"
+                str += "CREATE TABLE " + k + "_ (\n" + indent(v.to_sql(ctx, platform)) + "\n);\n"
             end
         end
-        return str
+        return ctx.generate(str)
     end
 
     def migrate_to(dbAuth, newSchema, platform)

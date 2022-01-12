@@ -1,5 +1,6 @@
 require_relative 'table.rb'
-require_relative "platforms.rb"
+require_relative "constraints.rb"
+require_relative 'platforms.rb'
 
 class Change
     attr_accessor :key, :newVal
@@ -9,7 +10,7 @@ class Change
         @val = new_value
     end
 
-    def to_sql(platform)
+    def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
             return "ALTER COLUMN " + @key.to_s + " TYPE " + @val.to_sql(platform)
         else
@@ -23,18 +24,28 @@ class Change
 end
 
 class Add
-    attr_accessor :key, :val, :constraints
+    attr_accessor :key, :val, :table_name, :constraints
 
-    def initialize(key, val, constraints=nil)
+    def initialize(table_name, key, val, constraints=nil)
         @key = key
         @val = val
         @constraints = constraints
+        @table_name = table_name
     end
 
-    def to_sql(platform)
+    def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
-            return "ADD COLUMN " + @key.to_s + " " + @val.to_sql(platform) + " " 
-            + constraints.to_a.map{|x| x.to_sql(platform)}.join(" ")
+            string_constraints = []
+            for constraint in @constraints
+                if constraint.is_a? Constraints::AutoIncrement
+                    ctx.add_start("CREATE SEQUENCE #{@table_name}__#{@key.to_s}_seq")
+                    ctx.add_end("ALTER SEQUENCE #{@table_name}__#{@key.to_s}_seq OWNED BY #{@table_name}_.#{@key.to_s}")
+                    string_constraints.append("DEFAULT NEXTVAL('#{@table_name}__#{@key.to_s}_seq')")
+                else
+                    string_constraints.append(constraint.to_sql(platform))
+                end
+            end
+            return "ADD COLUMN " + @key.to_s + " " + @val.to_sql(platform) + " " + string_constraints.join(" ")
         else
             unsupported_platform(platform)
         end
@@ -52,7 +63,7 @@ class Remove
         @key = key
     end
 
-    def to_sql(platform)
+    def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
             return "DROP COLUMN " + @key.to_s
         else
@@ -74,17 +85,9 @@ class AddConstraint
         @table_name = name
     end
 
-    def to_sql(platform)
+    def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
-            if @constraint.is_a? Constraints::Unique
-                return "ADD CONSTRAINT " + constraint_name(@table_name, @key.to_s, @constraint.to_sql(platform)) + " UNIQUE (" + @key.to_s + ")"
-            elsif @constraint.is_a? Constraints::NotNull
-                return "ALTER COLUMN " + @key.to_s + " SET NOT NULL"
-            elsif @constraint.is_a? Constraints::Nullable
-                return "ALTER COLUMN " + @key.to_s + " DROP NOT NULL"
-            elsif @constraint.is_a? Constraints::AutoIncrement
-                return "ALTER COLUMN " + @key.to_s + " SET DEFAULT NEXTVAL('#{@table_name}__#{@key.to_s}_seq')"
-            end
+            return @constraint.add_constraint_sql(ctx, platform, @table_name, @key)
         else
             unsupported_platform(platform)
         end
@@ -104,17 +107,9 @@ class RemoveConstraint
         @table_name = name
     end
 
-    def to_sql(platform)
+    def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
-            if @constraint.is_a? Constraints::Unique
-                return "DROP CONSTRAINT " + constraint_name(@table_name, @key.to_s, @constraint.to_sql(platform))
-            elsif @constraint.is_a? Constraints::NotNull
-                return "ALTER COLUMN " + @key.to_s + " DROP NOT NULL"
-            elsif @constraint.is_a? Constraints::Nullable
-                return "ALTER COLUMN " + @key.to_s + " SET NOT NULL"
-            elsif @constraint.is_a? Constraints::AutoIncrement
-                return "ALTER COLUMN " + @key.to_s + " SET DEFAULT(0)"
-            end
+            return @constraint.remove_constraint_sql(ctx, platform, @table_name, @key)
         else
             unsupported_platform(platform)
         end
@@ -156,12 +151,11 @@ def tableDiff(oldObj, newObj)
     end
     for k, v in newFields
         if not oldFields.include?(k)
-            changes.append(Add.new(k, v, newConstraints[k]))
+            changes.append(Add.new(name, k, v, newConstraints[k]))
         end
     end
     for k, k_constraints in oldConstraints
         new_k_constraints = newConstraints[k]
-        # print k_constraints, " => ", new_k_constraints, "\n"
         if new_k_constraints != nil
             for new_k_constraint in new_k_constraints
                 if not k_constraints.include?(new_k_constraint)

@@ -27,7 +27,7 @@ class User2 < Table
         self.name = "User"
         @table[:username] = CharField.new(max_length: 255)
         @table[:password] = CharField.new(max_length: 255, constraints: [Nullable.new])
-        @table[:phone_number] = IntField.new(field_type: IntTypes::Big)
+        @table[:phone_number] = IntField.new(field_type: IntTypes::Big, constraints: [Unique.new, AutoIncrement.new])
     end
 end
 
