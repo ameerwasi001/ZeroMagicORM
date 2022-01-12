@@ -3,11 +3,7 @@ require_relative 'fields.rb'
 include Fields
 require_relative 'constraints.rb'
 include Constraints
-
-def constraint_name(name, k, constraint)
-    cons = constraint.split(" ").join("_")
-    return "#{name}_#{k}_#{cons}"
-end
+require_relative 'utils.rb'
 
 module TableDefintion
     class DataTable
@@ -66,9 +62,8 @@ module TableDefintion
                 constraints = k_constraints.to_a.map{|x| x.to_sql(platform)}
                 if Platforms::POSTGRES == platform and k_constraints.include?(Constraints::AutoIncrement.new)
                     rectified_constraints = constraints.select{|x| x != Constraints::AutoIncrement.new.to_sql(platform)}
-                    seq_name = "#{self.name}__#{k}_seq"
-                    ctx.add_start("CREATE SEQUENCE #{seq_name}")
-                    ctx.add_end("ALTER SEQUENCE #{seq_name} OWNED BY #{self.name}_.#{k.to_s}")
+                    seq_name = "#{self.name}__#{k.to_s}_seq"
+                    create_seq(ctx, self.name, k, seq_name)
                     str = k.to_s + " " + v.to_sql(platform) + " " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " DEFAULT NEXTVAL('#{seq_name}')"
                     if k == :id
                         str += " PRIMARY KEY"

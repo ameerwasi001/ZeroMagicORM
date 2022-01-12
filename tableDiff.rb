@@ -38,9 +38,9 @@ class Add
             string_constraints = []
             for constraint in @constraints
                 if constraint.is_a? Constraints::AutoIncrement
-                    ctx.add_start("CREATE SEQUENCE #{@table_name}__#{@key.to_s}_seq")
-                    ctx.add_end("ALTER SEQUENCE #{@table_name}__#{@key.to_s}_seq OWNED BY #{@table_name}_.#{@key.to_s}")
-                    string_constraints.append("DEFAULT NEXTVAL('#{@table_name}__#{@key.to_s}_seq')")
+                    seq_name = "#{@table_name}__#{@key.to_s}_seq"
+                    create_seq(ctx, @table_name, @key, seq_name)
+                    string_constraints.append("DEFAULT NEXTVAL('#{seq_name}')")
                 else
                     string_constraints.append(constraint.to_sql(platform))
                 end
