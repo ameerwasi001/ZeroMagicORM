@@ -31,6 +31,17 @@ class User2 < Table
     end
 end
 
+class Post < Table
+    attr_accessor :table
+
+    def create
+        self.name = "Post"
+        @table[:username] = CharField.new(max_length: 255)
+        @table[:title] = CharField.new(max_length: 500)
+        @table[:text] = TextField.new(constraints: [Nullable.new])
+    end
+end
+
 dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
 
 # obj = JSON.dump(User.new)
@@ -46,4 +57,4 @@ dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
 
 # Migration.new([such]).migrate_to(dbAuth, Migration.new([User2.new]), Platforms::POSTGRES)
 usr_migrations = Migrations.new("usr")
-usr_migrations.migrate(dbAuth, User2.new, Platforms::POSTGRES)
+usr_migrations.migrate(dbAuth, [User2.new, Post.new], Platforms::POSTGRES)

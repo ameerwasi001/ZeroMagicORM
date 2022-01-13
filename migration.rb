@@ -127,7 +127,12 @@ class Migrations
         results = db.query "SELECT migration FROM #{self.migration_name} ORDER BY id DESC LIMIT 1"
         results.each do |row|
             migration = row[0]
-            return Migration.new([Table.json_create(JSON.parse(migration))])
+            tables = JSON.parse(migration)
+            classes = []
+            for _, table in tables
+                classes.append(Table.json_create(table))
+            end
+            return Migration.new(classes)
         end
         return Migration.new([])
     end
@@ -148,14 +153,18 @@ class Migrations
 
     def migrate(dbAuth, newSchema, platform)
         migration = self.current_migration
-        if self.should_migrate(migration.diff(Migration.new([newSchema])))
-            migration.migrate_to(dbAuth, Migration.new([newSchema]), platform)
+        if self.should_migrate(migration.diff(Migration.new(newSchema)))
+            migration.migrate_to(dbAuth, Migration.new(newSchema), platform)
             self.save(newSchema)
         end
     end
 
     def save(newSchema)
-        jsonSchema = JSON.dump(newSchema)
+        tables = {}
+        for table in newSchema
+            tables[table.name] = table
+        end
+        jsonSchema = JSON.dump(tables)
         db.execute "INSERT INTO #{self.migration_name} (migration) VALUES ('#{jsonSchema}');"
     end
 end
