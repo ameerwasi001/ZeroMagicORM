@@ -1,3 +1,4 @@
+require 'sqlite3'
 require_relative 'tableDiff.rb'
 require_relative 'connection.rb'
 require_relative 'utils.rb'
@@ -22,6 +23,10 @@ class ChangeTable
         @tableName = name
         @changeTable = changes
         @newDef = tableDef
+    end
+
+    def length
+        return @changeTable.length
     end
 
     def to_s
@@ -88,8 +93,10 @@ class Migration
         ctx = Context.new([], [])
         for k, v in changes
             if v.is_a? ChangeTable
-                str += "ALTER TABLE " + k + "_ \n"
-                str += v.to_sql(ctx, platform)
+                if v.changeTable.length != 0
+                    str += "ALTER TABLE " + k + "_ \n"
+                    str += v.to_sql(ctx, platform)
+                end
             else
                 str += "CREATE TABLE " + k + "_ (\n" + indent(v.to_sql(ctx, platform)) + "\n);\n"
             end
@@ -100,5 +107,55 @@ class Migration
     def migrate_to(dbAuth, newSchema, platform)
         sql = self.to_sql(newSchema, platform)
         pg_query(dbAuth, sql)
+    end
+end
+
+class Migrations
+    attr_accessor :name, :db
+
+    def initialize(name)
+        @name = name
+        @db = SQLite3::Database.new "migrations.db"
+        db.execute "CREATE TABLE IF NOT EXISTS #{self.migration_name} (id INTEGER PRIMARY KEY AUTOINCREMENT, migration TEXT NOT NULL)"
+    end
+
+    def migration_name
+        return "#{@name}_migrations"
+    end
+
+    def current_migration
+        results = db.query "SELECT migration FROM #{self.migration_name} ORDER BY id DESC LIMIT 1"
+        results.each do |row|
+            migration = row[0]
+            return Migration.new([Table.json_create(JSON.parse(migration))])
+        end
+        return Migration.new([])
+    end
+
+    def should_migrate(schema)
+        for k, v in schema
+            if v.is_a? AddTable
+                return true
+            end
+        end
+        for k, v in schema
+            if v.length > 0
+                return true
+            end
+        end
+        return false
+    end
+
+    def migrate(dbAuth, newSchema, platform)
+        migration = self.current_migration
+        if self.should_migrate(migration.diff(Migration.new([newSchema])))
+            migration.migrate_to(dbAuth, Migration.new([newSchema]), platform)
+            self.save(newSchema)
+        end
+    end
+
+    def save(newSchema)
+        jsonSchema = JSON.dump(newSchema)
+        db.execute "INSERT INTO #{self.migration_name} (migration) VALUES ('#{jsonSchema}');"
     end
 end
