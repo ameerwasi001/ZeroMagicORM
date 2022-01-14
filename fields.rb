@@ -44,7 +44,7 @@ module Fields
             new(field_type: data["field_type"])
         end
 
-        def to_sql(platform)
+        def to_sql(ctx, tb_name, field, platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
@@ -87,7 +87,7 @@ module Fields
             new(max_length: data["max_length"])
         end
 
-        def to_sql(platform)
+        def to_sql(ctx, tb_name, field, platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
@@ -97,6 +97,53 @@ module Fields
 
         def to_s
             return "VARCHAR(" + @max_length.to_s + ")"
+        end
+    end
+
+    class ForeignKeyField
+        attr_accessor :reference, :_constraints
+
+        def initialize(reference: nil, constraints: nil)
+            if constraints == nil
+                constraints = Set.new
+            end
+            if reference == nil
+                raise ArgumentError.new("Reference is required")
+            end
+            @_constraints = constraints
+            @reference = reference
+        end
+
+        def ==(other)
+            if not other.is_a?(ForeignKeyField) 
+                return false 
+            end
+            if @reference != other.reference
+                return false 
+            end
+            return true
+        end
+
+        def to_json(*a)
+            { 'json_class' => self.class.name, 'data' => {"reference" => @reference} }.to_json(*a)
+        end
+
+        def self.json_create(o)
+            data = o["data"]
+            new(reference: data["reference"])
+        end
+
+        def to_sql(ctx, tb_name, field, platform)
+            if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
+                ctx.add_end("ALTER TABLE #{tb_name}_ ADD CONSTRAINT \"#{tb_name}__#{@reference}__fk\" FOREIGN KEY (#{field}) REFERENCES #{@reference}_(id) ON DELETE CASCADE")
+                return "BIGINT"
+            else
+                unsupported_platform(platform)
+            end
+        end
+
+        def to_s
+            return "Reference(" + @reference.to_s + ", cascade)"
         end
     end
 
@@ -133,7 +180,7 @@ module Fields
             new(max_length: data["max_length"])
         end
 
-        def to_sql(platform)
+        def to_sql(ctx, tb_name, field, platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
                 return self.to_s
             else
@@ -150,5 +197,6 @@ module Fields
         "Fields::IntField" => IntField,
         "Fields::CharField" => CharField,
         "Fields::TextField" => TextField,
+        "Fields::ForeignKeyField" => ForeignKeyField,
     }
 end

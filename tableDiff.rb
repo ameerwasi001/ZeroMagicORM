@@ -3,16 +3,17 @@ require_relative "constraints.rb"
 require_relative 'platforms.rb'
 
 class Change
-    attr_accessor :key, :newVal
+    attr_accessor :table_name, :key, :newVal
 
-    def initialize(key, new_value)
+    def initialize(table_name, key, new_value)
         @key = key
         @val = new_value
+        @table_name = table_name
     end
 
     def to_sql(ctx, platform)
         if platform == Platforms::POSTGRES
-            return "ALTER COLUMN " + @key.to_s + " TYPE " + @val.to_sql(platform)
+            return "ALTER COLUMN " + @key.to_s + " TYPE " + @val.to_sql(ctx, @table_name, @key, platform)
         else
             unsupported_platform(platform)
         end
@@ -45,7 +46,7 @@ class Add
                     string_constraints.append(constraint.to_sql(platform))
                 end
             end
-            return "ADD COLUMN " + @key.to_s + " " + @val.to_sql(platform) + " " + string_constraints.join(" ")
+            return "ADD COLUMN " + @key.to_s + " " + @val.to_sql(ctx, @table_name, @key, platform) + " " + string_constraints.join(" ")
         else
             unsupported_platform(platform)
         end
@@ -143,7 +144,7 @@ def tableDiff(oldObj, newObj)
     for k, v in oldFields
         if newFields.include?(k)
             if newFields[k] != oldFields[k]
-                changes.append(Change.new(k, newFields[k]))
+                changes.append(Change.new(name, k, newFields[k]))
             end
         else
             changes.append(Remove.new(k))

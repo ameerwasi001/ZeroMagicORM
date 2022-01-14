@@ -36,7 +36,7 @@ class Post < Table
 
     def create
         self.name = "Post"
-        @table[:username] = CharField.new(max_length: 255)
+        @table[:user] = ForeignKeyField.new(reference: "User")
         @table[:title] = CharField.new(max_length: 500)
         @table[:text] = TextField.new(constraints: [Nullable.new])
     end
@@ -44,17 +44,5 @@ end
 
 dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
 
-# obj = JSON.dump(User.new)
-# such = Table.json_create(JSON.parse(obj))
-
-# sql = Migration.new([]).to_sql(Migration.new([User.new]), Platforms::POSTGRES)
-# print sql, "\n"
-
-# Migration.new([]).migrate_to(dbAuth, Migration.new([User.new]), Platforms::POSTGRES)
-
-# sql = Migration.new([such]).to_sql(Migration.new([User2.new]), Platforms::POSTGRES)
-# print sql, "\n"
-
-# Migration.new([such]).migrate_to(dbAuth, Migration.new([User2.new]), Platforms::POSTGRES)
 usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, [User2.new, Post.new], Platforms::POSTGRES)

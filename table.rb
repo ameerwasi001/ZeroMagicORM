@@ -64,7 +64,7 @@ module TableDefintion
                     rectified_constraints = constraints.select{|x| x != Constraints::AutoIncrement.new.to_sql(platform)}
                     seq_name = "#{self.name}__#{k.to_s}_seq"
                     create_seq(ctx, self.name, k, seq_name)
-                    str = k.to_s + " " + v.to_sql(platform) + " " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " DEFAULT NEXTVAL('#{seq_name}')"
+                    str = k.to_s + " " + v.to_sql(ctx, self.name, k, platform) + " " + rectified_constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" ") + " DEFAULT NEXTVAL('#{seq_name}')"
                     if k == :id
                         str += " PRIMARY KEY"
                     end
@@ -73,7 +73,7 @@ module TableDefintion
                     if k == :id and Platforms::SQLITE == platform
                         res.append(k.to_s + " INTEGER CONSTRAINT NOT NULL PRIMARY KEY")
                     else
-                        res.append(k.to_s + " " + v.to_sql(platform) + " " + constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" "))
+                        res.append(k.to_s + " " + v.to_sql(ctx, self.name, k, platform) + " " + constraints.map{|x| "CONSTRAINT #{constraint_name(self.name, k, x)} #{x}"}.join(" "))
                     end
                 end
             end
@@ -110,6 +110,21 @@ module TableDefintion
             self.create()
             for k, constraint in @table.defaults
                 @table.constraints[k] = @table.constraints[k] | @table.defaults[k]
+            end
+            keys = []
+            for k, v in @table.obj
+                keys.append([k, v])
+            end
+            for kv in keys
+                k = kv[0]
+                v = kv[1]
+                if v.is_a? Fields::ForeignKeyField and not k.to_s.end_with?("__id")
+                    constraints = @table.constraints[k].clone
+                    sym = (k.to_s + "__id").to_sym
+                    @table.set(sym, v, constraints)
+                    @table.obj.delete(k)
+                    @table.constraints.delete(k)
+                end
             end
         end
 
