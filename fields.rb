@@ -1,5 +1,6 @@
 require 'set'
 require 'json'
+require_relative 'constraints.rb'
 
 module Fields
     attr_accessor :fieldMap
@@ -52,6 +53,10 @@ module Fields
             end
         end
 
+        def defaults
+            Set.new [Constraints::NotNull.new]
+        end
+
         def to_s
             return @field_type + "INT"
         end
@@ -93,6 +98,10 @@ module Fields
             else
                 unsupported_platform(platform)
             end
+        end
+
+        def defaults
+            Set.new [Constraints::NotNull.new]
         end
 
         def to_s
@@ -142,6 +151,10 @@ module Fields
             end
         end
 
+        def defaults
+            Set.new [Constraints::Nullable.new]
+        end
+
         def to_s
             return "Reference(" + @reference.to_s + ", cascade)"
         end
@@ -178,6 +191,10 @@ module Fields
         def self.json_create(o)
             data = o['data']
             new(max_length: data["max_length"])
+        end
+
+        def defaults
+            Set.new [Constraints::NotNull.new]
         end
 
         def to_sql(ctx, tb_name, field, platform)

@@ -18,7 +18,7 @@ module TableDefintion
         def set(key, val, constraints=nil)
             @obj[key] = val
             @constraints[key] = Set.new
-            @defaults[key] = Set.new([NotNull.new])
+            @defaults[key] = val.defaults
             if constraints!=nil
                 for constraint in constraints.to_a
                     self.constraint(key, [constraint])
