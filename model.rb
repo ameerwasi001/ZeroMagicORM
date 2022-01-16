@@ -14,7 +14,9 @@ class Model
             v_dict[x.reference] = x.is_singular ? x.reference : (x.reference + "s")
         end
         for v in vertices
-            @model[v_dict[v.reference].to_sym] = schema.to_dict[v.reference.to_s]
+            str = v_dict[v.reference].to_s.dup
+            str[0] = str[0].downcase
+            @model[str.to_sym] = schema.to_dict[v.reference.to_s]
         end
     end
 
