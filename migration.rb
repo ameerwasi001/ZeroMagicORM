@@ -54,11 +54,10 @@ class Migration
     attr_accessor :tables
 
     def initialize(tableList)
-        suchTables = {}
-        for table in tableList
-            suchTables[table.name] = table
+        if tableList.is_a? Array
+            tableList = Schema.new tableList
         end
-        @tables = suchTables
+        @tables = tableList.to_dict
     end
 
     def contains?(key)
@@ -160,10 +159,7 @@ class Migrations
     end
 
     def save(newSchema)
-        tables = {}
-        for table in newSchema
-            tables[table.name] = table
-        end
+        tables = newSchema.to_dict
         jsonSchema = JSON.dump(tables)
         db.execute "INSERT INTO #{self.migration_name} (migration) VALUES ('#{jsonSchema}');"
     end

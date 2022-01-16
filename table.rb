@@ -4,6 +4,7 @@ include Fields
 require_relative 'constraints.rb'
 include Constraints
 require_relative 'utils.rb'
+require_relative 'model.rb'
 
 module TableDefintion
     class DataTable
@@ -101,7 +102,7 @@ module TableDefintion
     end
 
     class Table
-        attr_accessor :table
+        attr_accessor :table, :model
 
         def initialize()
             @table = DataTable.new()
@@ -126,6 +127,10 @@ module TableDefintion
                     @table.constraints.delete(k)
                 end
             end
+        end
+
+        def initialize_model(schema)
+            @model = Model.new(self.name, schema)
         end
 
         def set_name(value)
