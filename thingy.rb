@@ -70,6 +70,9 @@ schema.initialize_model
 usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
-print Users.model, "\n"
-print Posts.model, "\n"
-print Profiles.model, "\n"
+user = Users.init
+user[:username] = "ameerwasi"
+user[:password] = "wasiameer001"
+user[:phone_number] = 93777809
+
+print user, "\n"

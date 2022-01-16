@@ -145,6 +145,10 @@ module TableDefintion
             return @table.name
         end
 
+        def init
+            return @model.instantiate
+        end
+
         def create()
         end
 
