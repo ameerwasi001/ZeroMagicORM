@@ -29,17 +29,8 @@ class Record
         @obj[index] = val
     end
 
-    def include_in_array?(val, arr)
-        for newVal in arr
-            if not val.equal? newVal
-                return false
-            end
-        end
-        return true
-    end
-
     def validate
-        validated = []
+        validated = {}.compare_by_identity
         self.validate_single(validated)
     end
 
@@ -58,11 +49,11 @@ class Record
                 if v.is_a? Integer
                     next
                 end
-                if self.include_in_array?(v, validated)
+                if validated.include?(v)
                     next
                 end
                 if v.name == dbObj.name
-                    validated.add(v)
+                    validated[v] = v
                     v.validate_single(validated)
                     next
                 end
