@@ -1,6 +1,120 @@
 require 'set'
 require 'json'
+require_relative 'validators.rb'
 require_relative 'constraints.rb'
+
+module DBValue
+    class DBValue
+    end
+
+    class DBInt < DBValue
+        attr_accessor :field_type, :constraints, :name
+
+        def initialize(field_type: "", constraints: nil)
+            @name = "DBInt"
+            if field_type!="" and not Fields::IntTypes::Types.include?(field_type)
+                raise StandardError.new(field_type + " is not a valid integer type")
+            end
+            if constraints == nil
+                constraints = Set.new
+            end
+            @constraints = constraints
+            @field_type = field_type
+        end
+
+        def ==(other)
+            if not other.is_a?(DBInt) 
+                return false 
+            end
+            if @field_type != other.field_type or other.constraints != @constraints
+                return false
+            end
+            return true
+        end
+
+        def validator
+            return Validator::All.new(@constraints.to_a.map{|x| x.validator}.concat([Validator::IsInt.new]))
+        end
+
+        def to_s
+            return @field_type + "INT"
+        end
+
+        alias name to_s
+    end
+
+    class DBChar < DBValue
+        attr_accessor :max_length, :constraints, :name
+
+        def initialize(max_length: 255, constraints: nil)
+            @name = "DBChar"
+            if constraints == nil
+                constraints = Set.new
+            end
+            @constraints = constraints
+            @max_length = max_length
+        end
+
+        def ==(other)
+            if not other.is_a?(DBChar) 
+                return false 
+            end
+            if @max_length != other.max_length or other.constraints != @constraints
+                return false
+            end
+            return true
+        end
+
+        def validator
+            return Validator::All.new(@constraints.to_a.map{|x| x.validator}.concat([Validator::IsString.new, Validator::MaxLength.new(@max_length)]))
+        end
+
+        def to_s
+            return "VARCHAR(" + @max_length.to_s + ")"
+        end
+
+        alias name to_s
+    end
+
+    class DBText < DBValue
+        attr_accessor :max_length, :constraints
+
+        def initialize(max_length: 255, constraints: nil)
+            if constraints == nil
+                constraints = Set.new
+            end
+            @constraints = constraints
+            @max_length = max_length
+        end
+
+        def ==(other)
+            if not other.is_a?(DBText) 
+                return false 
+            end
+            if @max_length != other.max_length or other.constraints != @constraints
+                return false
+            end
+            return true
+        end
+
+        def validator
+            arr = [Validator::IsString.new]
+            if @max_length != nil
+                arr.append(Validator::MaxLength.new(@max_length))
+            end
+            return Validator::All.new(@constraints.to_a.map{|x| x.validator}.concat(arr))
+        end
+
+        def to_s
+            if @max_length == nil
+                return "TEXT"
+            end
+            return "TEXT(" + @max_length.to_s + ")"
+        end
+
+        alias name to_s
+    end
+end
 
 module Fields
     attr_accessor :fieldMap
@@ -57,6 +171,10 @@ module Fields
             Set.new [Constraints::NotNull.new]
         end
 
+        def get_value(constraints)
+            return DBValue::DBInt.new(field_type: @field_type, constraints: constraints)
+        end
+
         def to_s
             return @field_type + "INT"
         end
@@ -98,6 +216,10 @@ module Fields
             else
                 unsupported_platform(platform)
             end
+        end
+
+        def get_value(constraints)
+            return DBValue::DBChar.new(max_length: @max_length, constraints: constraints)
         end
 
         def defaults
@@ -179,6 +301,10 @@ module Fields
                 return false 
             end
             return true
+        end
+
+        def get_value(constraints)
+            return DBValue::DBText.new(max_length: @max_length, constraints: constraints)
         end
 
         def to_s

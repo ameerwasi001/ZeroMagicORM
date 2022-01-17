@@ -46,6 +46,10 @@ module Constraints
             end
         end
 
+        def validator
+            return Validator::TrueValidator.new
+        end
+
         def self.json_create(o)
             new(*o['data'])
         end
@@ -96,6 +100,10 @@ module Constraints
             else
                 unsupported_platform(platform)
             end
+        end
+
+        def validator
+            return Validator::NotNullValidator.new
         end
 
         def self.json_create(o)
@@ -158,6 +166,10 @@ module Constraints
             end
         end
 
+        def validator
+            return Validator::TrueValidator.new
+        end
+
         def self.json_create(o)
             new(*o['data'])
         end
@@ -210,6 +222,10 @@ module Constraints
             else
                 unsupported_platform(platform)
             end
+        end
+
+        def validator
+            return Validator::TrueValidator.new
         end
 
         def self.json_create(o)

@@ -71,8 +71,15 @@ usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
 user = Users.init
+profile = Profiles.init
+profile[:user] = user
+profile[:title] = "Title"
+profile[:text] = "Description"
+
+user[:profile] = profile
 user[:username] = "ameerwasi"
 user[:password] = "wasiameer001"
 user[:phone_number] = 93777809
+user.validate
 
 print user, "\n"
