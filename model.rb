@@ -49,11 +49,11 @@ class Record
                 if v.is_a? Integer
                     next
                 end
-                if validated.include?(v)
-                    next
-                end
                 if v.name == dbObj.name
                     validated[v] = v
+                    if validated.include?(v)
+                        next
+                    end
                     v.validate_single(validated)
                     next
                 end
