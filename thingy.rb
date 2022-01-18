@@ -57,6 +57,8 @@ class Profile < Table
 end
 
 dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
+DBConn.create(dbAuth)
+
 Users = User2.new
 Profiles = Profile.new
 Posts = Post.new
@@ -73,13 +75,13 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 user = Users.init
 profile = Profiles.init
 profile[:user] = user
-profile[:title] = "Title"
-profile[:text] = "Description"
+profile[:title] = "My Title"
+profile[:text] = "A description"
 
 user[:profile] = profile
-user[:username] = "ameerwasi"
-user[:password] = "wasiameer001"
-user[:phone_number] = 93777809
+user[:username] = "ameerwasi001"
+user[:password] = "mx1234578"
+user[:phone_number] = 95727351
 
 print user.to_sql, "\n"
 

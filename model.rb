@@ -84,13 +84,27 @@ class Record
         return @name + "{" + strs.join(", ") + "}"
     end
 
+    def mark_saved
+        if @saved
+            return
+        end
+        @saved = true
+        for k, field in @obj
+            if field.is_a? Record
+                field.mark_saved
+            end
+        end
+    end
+
     def save(dbAuth)
         if @saved
             raise SystemCallError.new "Updates not implemented"
         else
             sql = self.to_sql
+            self.mark_saved
         end
-        pg_query(dbAuth, sql)
+        conn = DBConn.getConnection
+        conn.exec(sql)
     end
 
     def to_sql
@@ -121,7 +135,6 @@ class Record
             return
         end
         generated[self] = self
-        context = Context.new([], [])
         fields = {}
         for k, v in @obj
             if v.is_a? Record
@@ -150,7 +163,7 @@ class Record
         end
         names = names_arr.join(", ")
         vals = vals_arr.join(", ")
-        statements.append("INSERT INTO #{@name}_ (#{names}) VALUES (#{vals})")
+        statements.append("INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING id")
         if inserts.has_key? self.name
             inserts[self.name] += 1
         else
