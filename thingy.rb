@@ -83,3 +83,4 @@ user[:phone_number] = 93777809
 user.validate
 
 print user, "\n"
+# print Users.model, "\n"

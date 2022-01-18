@@ -5,6 +5,9 @@ require_relative 'constraints.rb'
 
 module DBValue
     class DBValue
+        def is_required?
+            @constraints.include?(Constraints::NotNull.new)
+        end
     end
 
     class DBInt < DBValue

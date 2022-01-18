@@ -2,19 +2,17 @@ require_relative 'inferModels.rb'
 require_relative 'fields.rb'
 
 class Record
-    attr_accessor :name, :keys, :obj, :model, :saved
+    attr_accessor :name, :keys, :obj, :model, :readonly_keys, :saved
 
-    def initialize(name, model, keys)
+    def initialize(name, model, keys, readonly_keys)
         @name = name
+        @readonly_keys = readonly_keys
         @model = model
         @keys = Set.new
         @obj = {}
         @saved = false
         for k in keys
-            if k != :id
-                @obj[k] = nil
-                @keys.add(k)
-            end
+            @keys.add(k)
         end
     end
 
@@ -23,6 +21,9 @@ class Record
     end
 
     def []=(index, val)
+        if @readonly_keys.include?(index)
+            raise ArgumentError.new "'#{index}' is a read-only field record"
+        end
         if not @keys.include?(index)
             raise ArgumentError.new "'#{index}' not in record"
         end
@@ -35,6 +36,12 @@ class Record
     end
 
     def validate_single(validated)
+        for k in @keys
+            if (not @obj.has_key?(k)) and @model.model[k].is_a? DBValue::DBValue and @model.model[k].is_required? and (not readonly_keys.include?(k))
+                raise ArgumentError.new "'#{k}' is a required value"
+            end
+        end
+
         for k, v in @obj
             dbObj = @model.model[k]
             if dbObj.is_a? DBValue::DBValue then
@@ -78,10 +85,11 @@ class Record
 end
 
 class Model
-    attr_accessor :model, :name, :obj
+    attr_accessor :model, :name, :obj, :readonly_fields
 
     def initialize(name, schema)
         @name = name
+        @readonly_fields = Set.new [:id]
         @model = {}
         schema_dict = schema.to_dict
         graph = createGraph(schema)
@@ -91,17 +99,20 @@ class Model
         for x in vertices
             if x.is_singular
                 v_dict[x.reference] = x.reference
+            else
+                v_dict[x.reference] = x.reference + "s"
             end
         end
         for v in vertices
-            if v.is_singular
-                str = v_dict[v.reference].to_s.dup
-                str[0] = str[0].downcase
-                @model[str.to_sym] = schema_dict[v.reference.to_s]
+            str = v_dict[v.reference].to_s.dup
+            str[0] = str[0].downcase
+            @model[str.to_sym] = v.is_singular ? schema_dict[v.reference.to_s] : schema_dict[v.reference.to_s]
+            if not v.is_singular
+                @readonly_fields.add(str.to_sym)
             end
         end
         for k, feild in schema_dict[self.name].table.obj
-            if (not feild.is_a? Fields::ForeignKeyField) and k.to_sym != :id
+            if not feild.is_a? Fields::ForeignKeyField
                 constraints = schema_dict[self.name].table.constraints
                 @model[k.to_sym] = feild.get_value(constraints[k])
             end
@@ -113,7 +124,7 @@ class Model
         for k, v in @model
             set.add(k)
         end
-        return Record.new(self.name, self, set)
+        return Record.new(self.name, self, set, @readonly_fields)
     end
 
     def to_s
