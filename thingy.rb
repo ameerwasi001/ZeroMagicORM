@@ -30,7 +30,7 @@ class User2 < Table
         @table[:profile] = ForeignKeyField.new(reference: "Profile")
         @table[:username] = CharField.new(max_length: 255)
         @table[:password] = CharField.new(max_length: 255, constraints: [Nullable.new])
-        @table[:phone_number] = IntField.new(field_type: IntTypes::Big, constraints: [Unique.new, AutoIncrement.new])
+        @table[:phone_number] = IntField.new(field_type: IntTypes::Big, constraints: [Unique.new])
     end
 end
 
@@ -80,7 +80,7 @@ user[:profile] = profile
 user[:username] = "ameerwasi"
 user[:password] = "wasiameer001"
 user[:phone_number] = 93777809
-user.validate
 
-print user, "\n"
-# print Users.model, "\n"
+print user.to_sql, "\n"
+
+user.save(dbAuth)

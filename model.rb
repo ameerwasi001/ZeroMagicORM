@@ -1,5 +1,6 @@
 require_relative 'inferModels.rb'
 require_relative 'fields.rb'
+require_relative 'utils.rb'
 
 class Record
     attr_accessor :name, :keys, :obj, :model, :readonly_keys, :saved
@@ -82,6 +83,86 @@ class Record
         end
         return @name + "{" + strs.join(", ") + "}"
     end
+
+    def save(dbAuth)
+        if @saved
+            raise SystemCallError.new "Updates not implemented"
+        else
+            sql = self.to_sql
+        end
+        pg_query(dbAuth, sql)
+    end
+
+    def to_sql
+        generated = {}.compare_by_identity
+        statements = []
+        deps = {}
+        offsets = {}
+        inserts = self.to_sql_singleton({}, offsets, deps, statements, generated)
+        updates = self.to_sql_update(offsets, deps, statements, generated)
+        return (["BEGIN"] + statements).join(";\n") + ";\n\n" + (updates + ["COMMIT"]).join(";\n") + ";"
+    end
+
+    def to_sql_update(offsets, deps, statements, generated)
+        updates = []
+        for table, dep in deps
+            sets = Set.new
+            for k, model in dep
+                sets.add(k.to_s + "__id = (select currval('#{model.name}__id_seq')) - #{offsets[model]}")
+            end
+            offset = offsets[table]
+            updates.append "UPDATE #{table.name}_ SET #{sets.to_a.join(", ")} WHERE id = (select currval('#{table.name}__id_seq')) - #{offset}"
+        end
+        return updates
+    end
+
+    def to_sql_singleton(inserts, offsets, deps, statements, generated)
+        if generated.has_key?(self)
+            return
+        end
+        generated[self] = self
+        context = Context.new([], [])
+        fields = {}
+        for k, v in @obj
+            if v.is_a? Record
+                fields[k] = nil
+            else
+                fields[k] = v
+            end
+        end
+        names_arr = []
+        vals_arr = []
+        to_generates = {}
+        for key, field in @obj
+            if field.is_a? Record
+                names_arr.append((key.to_s + "__id").to_sym)
+                to_generates[key] = field
+                vals_arr.append("NULL")
+            else
+                names_arr.append(key.to_s)
+                if field.is_a? String
+                    val = "'#{fields[key].to_s}'"
+                else
+                    val = fields[key].to_s
+                end
+                vals_arr.append(val)
+            end
+        end
+        names = names_arr.join(", ")
+        vals = vals_arr.join(", ")
+        statements.append("INSERT INTO #{@name}_ (#{names}) VALUES (#{vals})")
+        if inserts.has_key? self.name
+            inserts[self.name] += 1
+        else
+            inserts[self.name] = 0
+        end
+        offsets[self] = inserts[self.name]
+        for k, to_generate in to_generates
+            to_generate.to_sql_singleton(inserts, offsets, deps, statements, generated)
+        end
+        deps[self] = to_generates
+        return inserts
+    end
 end
 
 class Model
@@ -115,6 +196,9 @@ class Model
             if not feild.is_a? Fields::ForeignKeyField
                 constraints = schema_dict[self.name].table.constraints
                 @model[k.to_sym] = feild.get_value(constraints[k])
+                if constraints[k].include?(Constraints::AutoIncrement.new)
+                    @readonly_fields.add(k.to_sym)
+                end
             end
         end
     end

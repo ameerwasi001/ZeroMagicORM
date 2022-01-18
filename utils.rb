@@ -34,6 +34,10 @@ class Context
     end
 end
 
+def unescape(str)
+    str.sub("'", "\\'")
+end
+
 def create_seq(ctx, table_name, column, seq_name)
     ctx.add_start("DO\n$$\nBEGIN\n  CREATE SEQUENCE #{seq_name};\nEXCEPTION WHEN duplicate_table THEN\n  -- do nothing, it's already there\nEND\n$$ LANGUAGE plpgsql")
     ctx.add_end("ALTER SEQUENCE #{seq_name} OWNED BY #{table_name}_.#{column.to_s}")
