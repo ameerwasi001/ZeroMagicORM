@@ -3,10 +3,11 @@ require_relative 'fields.rb'
 require_relative 'utils.rb'
 
 class Record
-    attr_accessor :name, :keys, :obj, :model, :readonly_keys, :saved
+    attr_accessor :name, :keys, :obj, :model, :readonly_keys, :autoincrement_keys, :saved
 
-    def initialize(name, model, keys, readonly_keys)
+    def initialize(name, model, keys, readonly_keys, autoincrement_keys)
         @name = name
+        @autoincrement_keys = autoincrement_keys
         @readonly_keys = readonly_keys
         @model = model
         @keys = Set.new
@@ -96,8 +97,8 @@ class Record
         end
     end
 
-    def dangerously_set_id(val)
-        @obj[:id] = val
+    def dangerously_set_field(key, val)
+        @obj[key.to_sym] = val
     end
 
     def save
@@ -109,13 +110,15 @@ class Record
         conn = DBConn.getConnection
         conn.exec "BEGIN;"
         for tup in inserts
-            obj, insert = tup
-            idRes = conn.exec(insert + ";")
-            for row in idRes
-                id = row["id"].to_i
+            obj, returns, insert = tup
+            res = conn.exec(insert + ";")
+            for row in res
                 break
             end
-            obj.dangerously_set_id(id)
+            for return_ in returns
+                value = row[return_.to_s.downcase]
+                obj.dangerously_set_field(return_, value)
+            end
         end
         for update in updates
             conn.exec(update + ";")
@@ -162,6 +165,7 @@ class Record
         end
         names_arr = []
         vals_arr = []
+        returns_arr = @autoincrement_keys.to_a
         to_generates = {}
         for key, field in @obj
             if field.is_a? Record
@@ -180,7 +184,8 @@ class Record
         end
         names = names_arr.join(", ")
         vals = vals_arr.join(", ")
-        statements.append([self, "INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING id"])
+        returns = returns_arr.join(", ")
+        statements.append([self, returns_arr, "INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING #{returns}"])
         if inserts.has_key? self.name
             inserts[self.name] += 1
         else
@@ -201,6 +206,7 @@ class Model
     def initialize(name, schema)
         @name = name
         @readonly_fields = Set.new [:id]
+        @auto_increment_fields = Set.new [:id]
         @model = {}
         schema_dict = schema.to_dict
         graph = createGraph(schema)
@@ -228,6 +234,7 @@ class Model
                 @model[k.to_sym] = feild.get_value(constraints[k])
                 if constraints[k].include?(Constraints::AutoIncrement.new)
                     @readonly_fields.add(k.to_sym)
+                    @auto_increment_fields.add(k.to_sym)
                 end
             end
         end
@@ -238,7 +245,7 @@ class Model
         for k, v in @model
             set.add(k)
         end
-        return Record.new(self.name, self, set, @readonly_fields)
+        return Record.new(self.name, self, set, @readonly_fields, @auto_increment_fields)
     end
 
     def to_s
