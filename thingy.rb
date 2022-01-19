@@ -83,6 +83,5 @@ user[:username] = "ameerwasi001"
 user[:password] = "mx1234578"
 user[:phone_number] = 95727351
 
-print user.to_sql, "\n"
-
-user.save(dbAuth)
+user.save
+print profile, " => ", user, "\n"

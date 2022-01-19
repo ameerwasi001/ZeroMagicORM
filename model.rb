@@ -96,15 +96,32 @@ class Record
         end
     end
 
-    def save(dbAuth)
+    def dangerously_set_id(val)
+        @obj[:id] = val
+    end
+
+    def save
         if @saved
             raise SystemCallError.new "Updates not implemented"
         else
-            sql = self.to_sql
-            self.mark_saved
+            inserts, updates = self.to_sql
         end
         conn = DBConn.getConnection
-        conn.exec(sql)
+        conn.exec "BEGIN;"
+        for tup in inserts
+            obj, insert = tup
+            idRes = conn.exec(insert + ";")
+            for row in idRes
+                id = row["id"].to_i
+                break
+            end
+            obj.dangerously_set_id(id)
+        end
+        for update in updates
+            conn.exec(update + ";")
+        end
+        conn.exec "COMMIT;"
+        self.mark_saved
     end
 
     def to_sql
@@ -113,11 +130,11 @@ class Record
         deps = {}
         offsets = {}
         inserts = self.to_sql_singleton({}, offsets, deps, statements, generated)
-        updates = self.to_sql_update(offsets, deps, statements, generated)
-        return (["BEGIN"] + statements).join(";\n") + ";\n\n" + (updates + ["COMMIT"]).join(";\n") + ";"
+        updates = self.to_sql_update(offsets, deps, generated)
+        return statements, updates
     end
 
-    def to_sql_update(offsets, deps, statements, generated)
+    def to_sql_update(offsets, deps, generated)
         updates = []
         for table, dep in deps
             sets = Set.new
@@ -163,7 +180,7 @@ class Record
         end
         names = names_arr.join(", ")
         vals = vals_arr.join(", ")
-        statements.append("INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING id")
+        statements.append([self, "INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING id"])
         if inserts.has_key? self.name
             inserts[self.name] += 1
         else
