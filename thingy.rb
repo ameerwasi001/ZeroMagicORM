@@ -74,6 +74,7 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
 user = Users.init
 profile = Profiles.init
+
 profile[:user] = user
 profile[:title] = "My Title"
 profile[:text] = "A description"
@@ -83,5 +84,8 @@ user[:username] = "ameerwasi001"
 user[:password] = "mx1234578"
 user[:phone_number] = 95727351
 
-user.save
-print profile, " => ", user, "\n"
+post = Posts.init
+post[:user] = user
+post[:title] = "First Post"
+post[:text] = "Text about this post"
+post.save

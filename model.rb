@@ -2,6 +2,26 @@ require_relative 'inferModels.rb'
 require_relative 'fields.rb'
 require_relative 'utils.rb'
 
+Absolute = Struct.new("Absolute", :value) do
+    def is_absolute?
+        return true
+    end
+
+    def to_sql(table_name)
+        self.value.to_s
+    end
+end
+
+Relative = Struct.new("Relative", :value) do
+    def is_absolute?
+        return false
+    end
+
+    def to_sql(table_name)
+        return "(select currval('#{table_name}__id_seq')) - #{self.value.to_s}"
+    end
+end
+
 class Record
     attr_accessor :name, :keys, :obj, :model, :readonly_keys, :autoincrement_keys, :saved
 
@@ -102,11 +122,7 @@ class Record
     end
 
     def save
-        if @saved
-            raise SystemCallError.new "Updates not implemented"
-        else
-            inserts, updates = self.to_sql
-        end
+        inserts, updates = self.to_sql
         conn = DBConn.getConnection
         conn.exec "BEGIN;"
         for tup in inserts
@@ -132,8 +148,19 @@ class Record
         statements = []
         deps = {}
         offsets = {}
-        inserts = self.to_sql_singleton({}, offsets, deps, statements, generated)
-        updates = self.to_sql_update(offsets, deps, generated)
+        updates = []
+        inserts = self.to_sql_singleton({}, updates, offsets, deps, statements, generated)
+        # print statements.join("\n"), "\n"
+        # deps_to_print = {}
+        # for table, dep in deps
+        #     deps_to_print[table.name] = {}
+        #     for k, model in dep
+        #         deps_to_print[table.name][k] = model.name
+        #     end
+        # end
+        # print deps_to_print, "\n"
+        complete_insertion_updates = self.to_sql_update(offsets, deps, generated)
+        updates += complete_insertion_updates
         return statements, updates
     end
 
@@ -142,15 +169,17 @@ class Record
         for table, dep in deps
             sets = Set.new
             for k, model in dep
-                sets.add(k.to_s + "__id = (select currval('#{model.name}__id_seq')) - #{offsets[model]}")
+                sets.add(k.to_s + "__id = #{offsets[model].to_sql(model.name)}")
             end
             offset = offsets[table]
-            updates.append "UPDATE #{table.name}_ SET #{sets.to_a.join(", ")} WHERE id = (select currval('#{table.name}__id_seq')) - #{offset}"
+            if sets.length > 0
+                updates.append "UPDATE #{table.name}_ SET #{sets.to_a.join(", ")} WHERE id = #{offset.to_sql(table.name)}"
+            end
         end
         return updates
     end
 
-    def to_sql_singleton(inserts, offsets, deps, statements, generated)
+    def to_sql_singleton(inserts, updates, offsets, deps, statements, generated)
         if generated.has_key?(self)
             return
         end
@@ -182,18 +211,25 @@ class Record
                 vals_arr.append(val)
             end
         end
-        names = names_arr.join(", ")
-        vals = vals_arr.join(", ")
-        returns = returns_arr.join(", ")
-        statements.append([self, returns_arr, "INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING #{returns}"])
-        if inserts.has_key? self.name
-            inserts[self.name] += 1
+        if @saved
+            assignments = names_arr.zip(vals_arr).map{|xs| xs[0].to_s + " = " + xs[1].to_s}.join(", ")
+            id = @obj[:id]
+            updates.append("UPDATE #{@name}_ SET #{assignments} WHERE id = #{id}")
+            offsets[self] = Absolute.new id
         else
-            inserts[self.name] = 0
+            names = names_arr.join(", ")
+            vals = vals_arr.join(", ")
+            returns = returns_arr.join(", ")
+            statements.append([self, returns_arr, "INSERT INTO #{@name}_ (#{names}) VALUES (#{vals}) RETURNING #{returns}"])
+            if inserts.has_key? self.name
+                inserts[self.name] += 1
+            else
+                inserts[self.name] = 0
+            end
+            offsets[self] = Relative.new inserts[self.name]
         end
-        offsets[self] = inserts[self.name]
         for k, to_generate in to_generates
-            to_generate.to_sql_singleton(inserts, offsets, deps, statements, generated)
+            to_generate.to_sql_singleton(inserts, updates, offsets, deps, statements, generated)
         end
         deps[self] = to_generates
         return inserts
