@@ -72,25 +72,30 @@ schema.initialize_model
 usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
-user = Users.init
+# user = Users.init
 # profile = Profiles.init
 
 # profile[:user] = user
 # profile[:title] = "My Title"
 # profile[:text] = "A description"
 
-user[:profile] = 80
-user.dangerously_set_field(:id, 99)
+# user[:profile] = profile
+# user[:username] = "ameerwasi001"
+# user[:password] = "mx1234578"
+# user[:phone_number] = 95727351
+# user.save
+
+# post = Posts.init
+# post[:user] = user
+# post[:title] = "First Post"
+# post[:text] = "Text about this post"
+# post.save
+
+user[:profile] = 81
+user.dangerously_set_field(:id, 100)
 user[:username] = "ameerwasi001"
 user[:password] = "mx1234578"
 user[:phone_number] = 95727351
 user.saved = true
-
-# post = Posts.init
-# post.dangerously_set_field(:id, 11)
-# post[:user] = user
-# post[:title] = "First Post"
-# post[:text] = "Text about this post"
-# post.saved = true
 
 print user[:posts].first, "\n"

@@ -16,28 +16,50 @@ end
 def createGraph(schema)
     adjacencies = {}
     for table_name, table in schema.to_dict
-        adjacencies[table_name] = Set.new
+        adjacencies[table_name] = {}
     end
     for table_name, table in schema.to_dict
         for k, field in table.table.obj
             if field.is_a? Fields::ForeignKeyField
-                adjacencies[table_name].add(field.reference)
+                reference = field.reference
+                adjacencies[table_name][k] = reference
             end
         end
+    end
+    for table_name, adjacencies_name in adjacencies.clone
+        table_adjacencies = {}
+        for k, v in adjacencies[table_name]
+            table_adjacencies[v] = Set.new
+        end
+        for k, v in adjacencies[table_name]
+            table_adjacencies[v].add(k)
+        end
+        adjacencies[table_name] = [table_adjacencies, adjacencies[table_name]]
     end
     return adjacencies
 end
 
 def inferModel(graph)
     res = {}
-    for k, _ in graph
-        res[k] = Set.new
+    for k, vs in graph
+        res[k] = {}
+        for kx, vxs in vs[1]
+            res[k][kx] = nil
+        end
     end
     visited = Set.new
     for k, vs in graph
         dfsPoint(res, graph, visited, k)
     end
-    return res
+    newRes = {}
+    for table_name, dict in res
+        newDict = {}
+        for k, v in dict
+            newDict[k.to_s[0...-4].to_sym] = v
+        end
+        newRes[table_name] = newDict
+    end
+    return newRes
 end
 
 def dfsPoint(res, graph, visited, vertex)
@@ -48,12 +70,12 @@ def dfsPoint(res, graph, visited, vertex)
     if not graph.has_key?(vertex)
         return
     end
-    for v in graph[vertex]
-        if graph.has_key?(v) and graph[v].include?(vertex)
-            res[vertex].add(Singular.new(v))
+    for k, v in graph[vertex][1]
+        if graph.has_key?(v) and graph[v][0].include?(vertex)
+            res[vertex][k] = Singular.new(v)
         else
-            res[v].add(Plural.new(vertex))
-            res[vertex].add(Singular.new(v))
+            res[v][(vertex.to_s.downcase + "__id").to_sym] = Plural.new(vertex)
+            res[vertex][k] = Singular.new(v)
         end
         dfsPoint(res, graph, visited, v)
     end

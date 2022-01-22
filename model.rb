@@ -285,23 +285,13 @@ class Model
         graph = createGraph(schema)
         relations = inferModel(graph)
         vertices = relations[name]
-        v_dict = {}
         @singulars = Set.new
-        for x in vertices
-            if x.is_singular
-                v_dict[x.reference] = x.reference
+        for k, v in vertices
+            if v.is_singular
+                @singulars.add(k)
+                @model[k] = schema_dict[v.reference]
             else
-                v_dict[x.reference] = x.reference + "s"
-            end
-        end
-        for v in vertices
-            str = v_dict[v.reference].to_s.dup
-            str[0] = str[0].downcase
-            @model[str.to_sym] = v.is_singular ? schema_dict[v.reference.to_s] : schema_dict[v.reference.to_s]
-            if not v.is_singular
-                @readonly_fields.add(str.to_sym)
-            else
-                @singulars.add(str.to_sym)
+                @model[(k.to_s + "s").to_sym] = schema_dict[v.reference]
             end
         end
         for k, feild in schema_dict[self.name].table.obj
@@ -314,6 +304,7 @@ class Model
                 end
             end
         end
+        # raise "No! Shit!"
     end
 
     def instantiate
