@@ -72,7 +72,7 @@ schema.initialize_model
 usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
-# user = Users.init
+user = Users.init
 # profile = Profiles.init
 
 # profile[:user] = user
