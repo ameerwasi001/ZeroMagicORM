@@ -22,11 +22,42 @@ Relative = Struct.new("Relative", :value) do
     end
 end
 
-class Record
-    attr_accessor :name, :keys, :obj, :model, :readonly_keys, :autoincrement_keys, :saved
+class Collection
+    attr_accessor :collection, :model
 
-    def initialize(name, model, keys, readonly_keys, autoincrement_keys)
+    def initialize(collection, model)
+        @collection = collection
+        @model = model
+    end
+
+    def instantiate(obj)
+        instance = model.instantiate
+        for k, v in obj
+            instance.dangerously_set_field(k, v)
+        end
+        instance.saved = true
+        return instance
+    end
+
+    def each
+        for obj in collection
+            yield self.instantiate(obj)
+        end
+    end
+
+    def first
+        for obj in self
+            return obj
+        end
+    end
+end
+
+class Record
+    attr_accessor :name, :keys, :obj, :model, :readonly_keys, :autoincrement_keys, :singulars, :saved
+
+    def initialize(name, model, keys, readonly_keys, autoincrement_keys, singulars)
         @name = name
+        @singulars = singulars
         @autoincrement_keys = autoincrement_keys
         @readonly_keys = readonly_keys
         @model = model
@@ -39,6 +70,20 @@ class Record
     end
 
     def [](index)
+        if @saved and (not @obj.has_key?(index)) and (not @autoincrement_keys.include?(index))
+            if @singulars.include?(index)
+                raise ArgumentError.new "Loading singular fields like #{index} is not supported"
+            else
+                modelObj = @model.model[index]
+                conn = DBConn.getConnection
+                tableName = modelObj.name
+                res = conn.exec "SELECT * FROM #{tableName}_;"
+                return Collection.new res, Model.new(tableName, @model.schema)
+            end
+        end
+        if not @obj.has_key?(index)
+            raise ArgumentError.new "No field named '#{index}' yet exists"
+        end
         return @obj[index]
     end
 
@@ -150,15 +195,6 @@ class Record
         offsets = {}
         updates = []
         inserts = self.to_sql_singleton({}, updates, offsets, deps, statements, generated)
-        # print statements.join("\n"), "\n"
-        # deps_to_print = {}
-        # for table, dep in deps
-        #     deps_to_print[table.name] = {}
-        #     for k, model in dep
-        #         deps_to_print[table.name][k] = model.name
-        #     end
-        # end
-        # print deps_to_print, "\n"
         complete_insertion_updates = self.to_sql_update(offsets, deps, generated)
         updates += complete_insertion_updates
         return statements, updates
@@ -237,18 +273,20 @@ class Record
 end
 
 class Model
-    attr_accessor :model, :name, :obj, :readonly_fields
+    attr_accessor :model, :name, :obj, :readonly_fields, :singulars, :schema
 
     def initialize(name, schema)
         @name = name
         @readonly_fields = Set.new [:id]
         @auto_increment_fields = Set.new [:id]
         @model = {}
+        @schema = schema
         schema_dict = schema.to_dict
         graph = createGraph(schema)
         relations = inferModel(graph)
         vertices = relations[name]
         v_dict = {}
+        @singulars = Set.new
         for x in vertices
             if x.is_singular
                 v_dict[x.reference] = x.reference
@@ -262,6 +300,8 @@ class Model
             @model[str.to_sym] = v.is_singular ? schema_dict[v.reference.to_s] : schema_dict[v.reference.to_s]
             if not v.is_singular
                 @readonly_fields.add(str.to_sym)
+            else
+                @singulars.add(str.to_sym)
             end
         end
         for k, feild in schema_dict[self.name].table.obj
@@ -281,7 +321,7 @@ class Model
         for k, v in @model
             set.add(k)
         end
-        return Record.new(self.name, self, set, @readonly_fields, @auto_increment_fields)
+        return Record.new(self.name, self, set, @readonly_fields, @auto_increment_fields, @singulars)
     end
 
     def to_s
