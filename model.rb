@@ -32,8 +32,15 @@ class Collection
 
     def instantiate(obj)
         instance = model.instantiate
+        instance.dangerously_set_field(:id, obj["id"])
         for k, v in obj
-            instance.dangerously_set_field(k, v)
+            model_key = k.to_s[0...-4]
+            model_key_sym = model_key.to_sym
+            if k.to_s.end_with?("__id") and @model.schema.relations[@model.name].has_key?(model_key_sym)
+                instance.dangerously_set_field(model_key_sym, v)
+            else
+                instance.dangerously_set_field(k, v)
+            end
         end
         instance.saved = true
         return instance
@@ -70,7 +77,7 @@ class Record
     end
 
     def [](index)
-        if @saved and (not @obj.has_key?(index)) and (not @autoincrement_keys.include?(index))
+        if @saved and ((not @obj.has_key?(index)) or @obj[index].is_a?(Integer)) and (not @autoincrement_keys.include?(index))
             if @singulars.include?(index)
                 raise ArgumentError.new "Loading singular fields like #{index} is not supported"
             else
@@ -78,7 +85,9 @@ class Record
                 conn = DBConn.getConnection
                 tableName = modelObj.name
                 res = conn.exec "SELECT * FROM #{tableName}_;"
-                return Collection.new res, Model.new(tableName, @model.schema)
+                collection = Collection.new res, Model.new(tableName, @model.schema)
+                @obj[index] = collection
+                return collection
             end
         end
         if not @obj.has_key?(index)
