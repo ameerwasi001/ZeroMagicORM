@@ -126,6 +126,11 @@ module TableDefintion
                     @table.obj.delete(k)
                     @table.constraints.delete(k)
                 end
+                if v.is_a? Fields::ForeignKeyField
+                    if v.back_ref == nil
+                        v.back_ref = self.name
+                    end
+                end
             end
         end
 

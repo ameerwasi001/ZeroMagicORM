@@ -82,13 +82,17 @@ class Record
             conn = DBConn.getConnection
             tableName = modelObj.name
             if @singulars.include?(index)
-                res = conn.exec "SELECT * FROM #{tableName}_ LIMIT 1;"
+                id = @obj[tableName.downcase.to_sym]
+                res = conn.exec "SELECT * FROM #{tableName}_ WHERE id = #{id} LIMIT 1;"
                 record = Collection.new(res, Model.new(tableName, @model.schema)).first
                 @obj[index] = record
                 return record
             else
-                res = conn.exec "SELECT * FROM #{tableName}_;"
-                collection = Collection.new res, Model.new(tableName, @model.schema)
+                new_model = Model.new(tableName, @model.schema)
+                back_ref = new_model.back_refs[index.to_s[0...-1] + "__id"]
+                id = @obj[:id]
+                res = conn.exec "SELECT * FROM #{tableName}_ WHERE #{back_ref} = #{id};"
+                collection = Collection.new res, new_model
                 @obj[index] = collection
                 return collection
             end
@@ -245,10 +249,14 @@ class Record
         returns_arr = @autoincrement_keys.to_a
         to_generates = {}
         for key, field in @obj
-            if field.is_a? Record
+            if @singulars.include?(key)
                 names_arr.append((key.to_s + "__id").to_sym)
-                to_generates[key] = field
-                vals_arr.append("NULL")
+                if field.is_a? Record
+                    to_generates[key] = field
+                    vals_arr.append("NULL")
+                else
+                    vals_arr.append("#{field}")
+                end
             else
                 names_arr.append(key.to_s)
                 if field.is_a? String
@@ -285,7 +293,7 @@ class Record
 end
 
 class Model
-    attr_accessor :model, :name, :obj, :readonly_fields, :singulars, :schema
+    attr_accessor :model, :name, :obj, :readonly_fields, :singulars, :schema, :back_refs
 
     def initialize(name, schema)
         @name = name
@@ -298,6 +306,10 @@ class Model
         relations = schema.relations
         vertices = relations[name]
         @singulars = Set.new
+        @back_refs = {}
+        for k, v in schema.graph[name][1]
+            @back_refs[v.back_ref] = k
+        end
         for k, v in vertices
             if v.is_singular
                 @singulars.add(k)

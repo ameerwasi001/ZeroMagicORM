@@ -1,13 +1,13 @@
 require 'set'
 require_relative 'fields.rb'
 
-Singular = Struct.new("Singular", :reference) do
+Singular = Struct.new("Singular", :reference, :back_ref) do
     def is_singular
         return true
     end
 end
 
-Plural = Struct.new("Plural", :reference) do
+Plural = Struct.new("Plural", :reference, :back_ref) do
     def is_singular
         return false
     end
@@ -21,7 +21,7 @@ def createGraph(schema)
     for table_name, table in schema.to_dict
         for k, field in table.table.obj
             if field.is_a? Fields::ForeignKeyField
-                reference = field.reference
+                reference = field
                 adjacencies[table_name][k] = reference
             end
         end
@@ -71,11 +71,11 @@ def dfsPoint(res, graph, visited, vertex)
         return
     end
     for k, v in graph[vertex][1]
-        if graph.has_key?(v) and graph[v][0].include?(vertex)
-            res[vertex][k] = Singular.new(v)
+        if graph.has_key?(v.reference) and graph[v.reference][0].include?(ForeignKeyField.new(reference: vertex))
+            res[vertex][k] = Singular.new(v.reference, v.back_ref)
         else
-            res[v][(vertex.to_s.downcase + "__id").to_sym] = Plural.new(vertex)
-            res[vertex][k] = Singular.new(v)
+            res[v.reference][v.back_ref] = Plural.new(vertex, v.back_ref)
+            res[vertex][k] = Singular.new(v.reference, v.back_ref)
         end
         dfsPoint(res, graph, visited, v)
     end

@@ -235,7 +235,7 @@ module Fields
     end
 
     class ForeignKeyField
-        attr_accessor :reference, :_constraints
+        attr_accessor :reference, :back_ref_internal, :_constraints
 
         def initialize(reference: nil, constraints: nil)
             if constraints == nil
@@ -256,6 +256,25 @@ module Fields
                 return false 
             end
             return true
+        end
+
+        def eql?(other)
+            return self == other
+        end
+
+        def hash
+            return "ForeignKeyField".hash & @reference.hash
+        end
+
+        def back_ref
+            return @back_ref_internal
+        end
+
+        def back_ref=(table_name)
+            if @back_ref_internal != nil
+                raise ArgumentError.new "Back reference is already initialized"
+            end
+            @back_ref_internal = table_name.downcase + "__id"
         end
 
         def to_json(*a)
