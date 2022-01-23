@@ -98,4 +98,4 @@ user[:password] = "mx1234578"
 user[:phone_number] = 95727351
 user.saved = true
 
-print user[:posts].first, "\n"
+print user[:posts].first[:user][:profile], "\n"

@@ -78,12 +78,15 @@ class Record
 
     def [](index)
         if @saved and ((not @obj.has_key?(index)) or @obj[index].is_a?(Integer)) and (not @autoincrement_keys.include?(index))
+            modelObj = @model.model[index]
+            conn = DBConn.getConnection
+            tableName = modelObj.name
             if @singulars.include?(index)
-                raise ArgumentError.new "Loading singular fields like #{index} is not supported"
+                res = conn.exec "SELECT * FROM #{tableName}_ LIMIT 1;"
+                record = Collection.new(res, Model.new(tableName, @model.schema)).first
+                @obj[index] = record
+                return record
             else
-                modelObj = @model.model[index]
-                conn = DBConn.getConnection
-                tableName = modelObj.name
                 res = conn.exec "SELECT * FROM #{tableName}_;"
                 collection = Collection.new res, Model.new(tableName, @model.schema)
                 @obj[index] = collection
