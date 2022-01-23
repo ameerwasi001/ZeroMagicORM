@@ -1,5 +1,5 @@
 class Schema
-    attr_accessor :internal_dict
+    attr_accessor :internal_dict, :graph, :relations
 
     def initialize(schema)
         @internal_dict = {}
@@ -21,6 +21,8 @@ class Schema
     end
 
     def initialize_model
+        @graph = createGraph(self)
+        @relations = inferModel(@graph)
         for _, table in @internal_dict
             table.initialize_model(self)
         end

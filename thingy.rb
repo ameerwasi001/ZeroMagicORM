@@ -91,8 +91,8 @@ user = Users.init
 # post[:text] = "Text about this post"
 # post.save
 
-user[:profile] = 81
-user.dangerously_set_field(:id, 100)
+user[:profile] = 82
+user.dangerously_set_field(:id, 101)
 user[:username] = "ameerwasi001"
 user[:password] = "mx1234578"
 user[:phone_number] = 95727351

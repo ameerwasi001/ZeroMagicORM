@@ -282,8 +282,8 @@ class Model
         @model = {}
         @schema = schema
         schema_dict = schema.to_dict
-        graph = createGraph(schema)
-        relations = inferModel(graph)
+        graph = schema.graph
+        relations = schema.relations
         vertices = relations[name]
         @singulars = Set.new
         for k, v in vertices
@@ -304,7 +304,6 @@ class Model
                 end
             end
         end
-        # raise "No! Shit!"
     end
 
     def instantiate
