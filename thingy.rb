@@ -74,24 +74,32 @@ schema.initialize_model
 usr_migrations = Migrations.new("usr")
 usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 
-# user = Users.init
-# profile = Profiles.init
+# phone_nums = [93777809, 93971805, 95277105]
+# usernames = ["ameershah", "ameerwasi", "ameerwasi001"]
+# passwords = ["mx12345678", "mio90xa11", "wasiameer"]
 
-# profile[:user] = user
-# profile[:title] = "My Title 3"
-# profile[:text] = "A description 3"
+# i = 0
+# while i < 3
+#     user = Users.init
+#     profile = Profiles.init
 
-# user[:profile] = profile
-# user[:username] = "ameershah"
-# user[:password] = "mix123400"
-# user[:phone_number] = 93971805
-# user.save
+#     profile[:user] = user
+#     profile[:title] = "My Title #{i+1}"
+#     profile[:text] = "A description #{i+1}"
 
-# user = Users.where({id: 4}).first
+#     user[:profile] = profile
+#     user[:username] = usernames[i]
+#     user[:password] = passwords[i]
+#     user[:phone_number] = phone_nums[i]
+#     user.save
+#     i+=1
+# end
+
+# user = Users.where({id: 2}).first
 # post = Posts.init
 # post[:user] = user
-# post[:title] = "Third user, first post"
-# post[:text] = "Text about this post from 3rd user"
+# post[:title] = "Second user, first post"
+# post[:text] = "Text about this post from 2nd user"
 # post.save
 
-print Users.where({id: 1}).first[:posts].first[:user][:profile], "\n"
+print Users.where({id: 2}).first[:posts].first[:user][:profile], "\n"

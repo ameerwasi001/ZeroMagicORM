@@ -119,7 +119,7 @@ module TableDefintion
             for kv in keys
                 k = kv[0]
                 v = kv[1]
-                if v.is_a? Fields::ForeignKeyField and not k.to_s.end_with?("__id")
+                if v.is_a? Fields::ForeignKeyField and (not k.to_s.end_with?("__id"))
                     constraints = @table.constraints[k].clone
                     sym = (k.to_s + "__id").to_sym
                     @table.set(sym, v, constraints)
