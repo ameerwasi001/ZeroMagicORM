@@ -288,7 +288,7 @@ module Fields
 
         def to_sql(ctx, tb_name, field, platform)
             if platform == Platforms::SQLITE or platform == Platforms::POSTGRES
-                ctx.add_end("ALTER TABLE #{tb_name}_ ADD CONSTRAINT \"#{tb_name}__#{@reference}__fk\" FOREIGN KEY (#{field}) REFERENCES #{@reference}_(id) ON DELETE CASCADE")
+                ctx.add_end("ALTER TABLE #{tb_name}_ ADD CONSTRAINT \"#{tb_name}__#{@reference}_#{field}__fk\" FOREIGN KEY (#{field}) REFERENCES #{@reference}_(id) ON DELETE CASCADE")
                 return "BIGINT"
             else
                 unsupported_platform(platform)

@@ -74,6 +74,9 @@ def dfsPoint(res, graph, visited, vertex)
         if graph.has_key?(v.reference) and graph[v.reference][0].include?(ForeignKeyField.new(reference: vertex))
             res[vertex][k] = Singular.new(v.reference, v.back_ref)
         else
+            if res[v.reference].has_key?(v.back_ref)
+                raise ArgumentError.new "Inference Error: Conflicting back references to #{v.reference}"
+            end
             res[v.reference][v.back_ref] = Plural.new(vertex, v.back_ref)
             res[vertex][k] = Singular.new(v.reference, v.back_ref)
         end
