@@ -1,6 +1,7 @@
 require_relative 'inferModels.rb'
 require_relative 'fields.rb'
 require_relative 'utils.rb'
+require_relative 'query.rb'
 
 Absolute = Struct.new("Absolute", :value) do
     def is_absolute?
@@ -23,15 +24,33 @@ Relative = Struct.new("Relative", :value) do
 end
 
 class Collection
-    attr_accessor :collection, :model
+    attr_accessor :collection_internal, :model, :query
 
     def initialize(collection, model)
-        @collection = collection
+        self.collection = collection
         @model = model
     end
 
+    def collection=(val)
+        @collection_internal = val
+    end
+
+    def collection
+        if @collection_internal == nil and @query != nil
+            conn = DBConn.getConnection
+            @collection_internal = conn.exec @query.to_sql
+        end
+        return @collection_internal
+    end
+
+    def self.from_query(query, model)
+        this = new(nil, model)
+        this.query = query
+        return this
+    end
+
     def instantiate(obj)
-        instance = model.instantiate
+        instance = @model.instantiate
         instance.dangerously_set_field(:id, obj["id"])
         for k, v in obj
             model_key = k.to_s[0...-4]
@@ -47,7 +66,7 @@ class Collection
     end
 
     def each
-        for obj in collection
+        for obj in self.collection
             yield self.instantiate(obj)
         end
     end
@@ -79,20 +98,21 @@ class Record
     def [](index)
         if @saved and ((not @obj.has_key?(index)) or @obj[index].is_a?(Integer)) and (not @autoincrement_keys.include?(index))
             modelObj = @model.model[index]
-            conn = DBConn.getConnection
             tableName = modelObj.name
+            new_model = Model.new(tableName, @model.schema)
             if @singulars.include?(index)
                 id = @obj[tableName.downcase.to_sym]
-                res = conn.exec "SELECT * FROM #{tableName}_ WHERE id = #{id} LIMIT 1;"
-                record = Collection.new(res, Model.new(tableName, @model.schema)).first
+                query = Query.new(new_model).where({id: id}).limit(1)
+                record = Collection.from_query(query, new_model).first
                 @obj[index] = record
                 return record
             else
-                new_model = Model.new(tableName, @model.schema)
                 back_ref = new_model.back_refs[index.to_s[0...-1] + "__id"]
                 id = @obj[:id]
-                res = conn.exec "SELECT * FROM #{tableName}_ WHERE #{back_ref} = #{id};"
-                collection = Collection.new res, new_model
+                dict = {}
+                dict[back_ref.to_sym] = id
+                query = Query.new(new_model).where(dict)
+                collection = Collection.from_query(query, new_model)
                 @obj[index] = collection
                 return collection
             end

@@ -9,6 +9,7 @@ require_relative 'tableDiff.rb'
 require_relative 'migration.rb'
 require_relative 'platforms.rb'
 require_relative 'schema.rb'
+require_relative 'query.rb'
 
 class User < Table
     attr_accessor :table
@@ -91,11 +92,4 @@ user = Users.init
 # post[:text] = "Text about this post"
 # post.save
 
-user[:profile] = 84
-user.dangerously_set_field(:id, 103)
-user[:username] = "ameerwasi001"
-user[:password] = "mx1234578"
-user[:phone_number] = 95727351
-user.saved = true
-
-print user[:posts].first[:user][:profile], "\n"
+print Users.where({id: 103}).first[:posts].first[:user][:profile], "\n"

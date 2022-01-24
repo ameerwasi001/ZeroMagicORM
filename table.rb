@@ -154,7 +154,12 @@ module TableDefintion
             return @model.instantiate
         end
 
-        def create()
+        def where(dict)
+            query = Query.new(@model).where(dict)
+            return Collection.from_query(query, @model)
+        end
+
+        def create
         end
 
         def self.json_create(o)
