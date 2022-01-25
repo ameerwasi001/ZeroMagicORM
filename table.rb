@@ -159,6 +159,11 @@ module TableDefintion
             return Collection.from_query(query, @model)
         end
 
+        def get(dict)
+            query = Query.new(@model).where(dict).limit(1)
+            return Collection.from_query(query, @model).first
+        end
+
         def create
         end
 
