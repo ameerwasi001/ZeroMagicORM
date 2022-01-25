@@ -159,7 +159,7 @@ class Record
                 if v.is_a? Integer
                     next
                 end
-                if v.name == dbObj.name
+                if v.is_a?(Record) and v.name == dbObj.name
                     validated[v] = v
                     if validated.include?(v)
                         next
@@ -167,7 +167,7 @@ class Record
                     v.validate_single(validated)
                     next
                 end
-                raise ArgumentError.new "#{v.name} is not a valid object of #{dbObj.class.name}"
+                raise ArgumentError.new "#{v} is not a valid object of #{dbObj.class.name}"
             end
         end
     end
@@ -203,6 +203,7 @@ class Record
     end
 
     def save
+        self.validate
         inserts, updates = self.to_sql
         conn = DBConn.getConnection
         conn.exec "BEGIN;"

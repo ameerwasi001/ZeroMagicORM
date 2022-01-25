@@ -95,11 +95,11 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 #     i+=1
 # end
 
-# user = Users.where({id: 2}).first
+# user = Users.get({id: 1})
 # post = Posts.init
 # post[:user] = user
-# post[:title] = "Second user, first post"
-# post[:text] = "Text about this post from 2nd user"
+# post[:title] = "1st user, first post"
+# post[:text] = "Text about this post from first user"
 # post.save
 
 print Users.get({id: 2})[:posts].first[:user][:profile], "\n"
