@@ -237,13 +237,14 @@ module Fields
     class ForeignKeyField
         attr_accessor :reference, :back_ref_internal, :_constraints
 
-        def initialize(reference: nil, constraints: nil)
+        def initialize(reference: nil, back_ref: nil, constraints: nil)
             if constraints == nil
                 constraints = Set.new
             end
             if reference == nil
                 raise ArgumentError.new("Reference is required")
             end
+            self.back_ref = back_ref
             @_constraints = constraints
             @reference = reference
         end
@@ -271,6 +272,9 @@ module Fields
         end
 
         def back_ref=(table_name)
+            if table_name == nil
+                return
+            end
             if @back_ref_internal != nil
                 raise ArgumentError.new "Back reference is already initialized"
             end

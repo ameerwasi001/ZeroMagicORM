@@ -78,7 +78,7 @@ def dfsPoint(res, graph, visited, vertex)
                 raise ArgumentError.new "Inference Error: Conflicting back references to #{v.reference}"
             end
             res[v.reference][v.back_ref] = Plural.new(vertex, v.back_ref)
-            res[vertex][k] = Singular.new(v.reference, v.back_ref)
+            res[vertex][k] = Singular.new(v.reference, k.to_s)
         end
         dfsPoint(res, graph, visited, v)
     end

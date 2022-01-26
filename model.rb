@@ -97,11 +97,14 @@ class Record
 
     def [](index)
         if @saved and ((not @obj.has_key?(index)) or @obj[index].is_a?(Integer)) and (not @autoincrement_keys.include?(index))
+            if not @model.model.has_key?(index)
+                raise ArgumentError.new "No key named '#{index}' is present in #{@model.name}"
+            end
             modelObj = @model.model[index]
             tableName = modelObj.name
             new_model = Model.new(tableName, @model.schema)
             if @singulars.include?(index)
-                id = @obj[tableName.downcase.to_sym]
+                id = @obj[index.to_sym]
                 query = Query.new(new_model).where({id: id}).limit(1)
                 record = Collection.from_query(query, new_model).first
                 @obj[index] = record

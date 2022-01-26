@@ -21,7 +21,7 @@ class Query
     def where(dict)
         for k, v in dict
             if not self.is_valid(k, v)
-                raise "Invalid key-value pair (#{k}, #{v})"
+                raise "Invalid key-value pair (#{k}, #{v}) for #{model.name}"
             end
             @clauses[k] = v
         end

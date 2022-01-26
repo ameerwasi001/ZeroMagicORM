@@ -57,17 +57,30 @@ class Profile < Table
     end
 end
 
+class Message < Table
+    attr_accessor :table
+
+    def create
+        self.name = "Message"
+        @table[:sender] = ForeignKeyField.new(reference: "User", back_ref: "sent")
+        @table[:text] = TextField.new
+        @table[:receiver] = ForeignKeyField.new(reference: "User", back_ref: "received")
+    end
+end
+
 dbAuth = DBAuth.new("localhost", 5432, "orm_test", "postgres", "root")
 DBConn.create(dbAuth)
 
 Users = User2.new
 Profiles = Profile.new
 Posts = Post.new
+Messages = Message.new
 
 schema = Schema.new([])
 schema.register(Users)
 schema.register(Profiles)
 schema.register(Posts)
+schema.register(Messages)
 
 schema.initialize_model
 
@@ -102,4 +115,18 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 # post[:text] = "Text about this post from first user"
 # post.save
 
-print Users.get({id: 2})[:posts].first[:user][:profile], "\n"
+# message = Messages.init
+# message[:sender] = 2
+# message[:receiver] = 3
+# message[:text] = "From 2 to 3, message 4"
+# message.save
+
+# print Users.model, "\n"
+# print Profiles.model, "\n"
+# print Posts.model, "\n"
+# print Messages.model, "\n"
+
+messages = Users.get({id: 3})[:posts].first[:user][:profile][:user][:sents]
+for record in messages
+    print record[:receiver], "\n"
+end
