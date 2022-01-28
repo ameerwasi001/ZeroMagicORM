@@ -62,9 +62,9 @@ class Message < Table
 
     def create
         self.name = "Message"
-        @table[:sender] = ForeignKeyField.new(reference: "User", back_ref: "sent")
+        @table[:sender] = ForeignKeyField.new(reference: "User", back_ref: "sent_message")
         @table[:text] = TextField.new
-        @table[:receiver] = ForeignKeyField.new(reference: "User", back_ref: "received")
+        @table[:receiver] = ForeignKeyField.new(reference: "User", back_ref: "received_message")
     end
 end
 
@@ -126,7 +126,7 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 # print Posts.model, "\n"
 # print Messages.model, "\n"
 
-messages = Users.get({id: 3})[:posts].first[:user][:profile][:user][:sents]
-for record in messages
-    print record[:receiver], "\n"
+messages = Users.get({id: 3})[:posts].first[:user][:profile][:user][:sent_messages]
+for message in messages
+    print message[:receiver], "\n"
 end
