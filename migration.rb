@@ -50,6 +50,18 @@ class ChangeTable
     end
 end
 
+class DropTable
+    attr_accessor :tableName
+
+    def initialize(name)
+        @tableName = name
+    end
+
+    def to_sql(ctx, platform)
+        return "DROP TABLE " + @tableName + "_ CASCADE"
+    end
+end
+
 class Migration
     attr_accessor :tables
 
@@ -83,6 +95,11 @@ class Migration
                 entireChanges[k] = AddTable.new(k, u2)
             end
         end
+        for k, v in oldSchema.tables
+            if not newSchema.contains?(k)
+                entireChanges[k] = DropTable.new(k)
+            end
+        end
         return entireChanges
     end
 
@@ -96,8 +113,10 @@ class Migration
                     str += "ALTER TABLE " + k + "_ \n"
                     str += v.to_sql(ctx, platform)
                 end
-            else
+            elsif v.is_a? AddTable
                 str += "CREATE TABLE " + k + "_ (\n" + indent(v.to_sql(ctx, platform)) + "\n);\n"
+            else
+                return v.to_sql(ctx, platform) + ";\n"
             end
         end
         return ctx.generate(str)
@@ -138,7 +157,7 @@ class Migrations
 
     def should_migrate(schema)
         for k, v in schema
-            if v.is_a? AddTable
+            if v.is_a?(AddTable) or v.is_a?(DropTable)
                 return true
             end
         end
