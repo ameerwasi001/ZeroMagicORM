@@ -31,6 +31,10 @@ class Collection
         @model = model
     end
 
+    def banish_collection
+        @collection_internal = nil
+    end
+
     def collection=(val)
         @collection_internal = val
     end
@@ -41,6 +45,12 @@ class Collection
             @collection_internal = conn.exec @query.to_sql
         end
         return @collection_internal
+    end
+
+    def where(obj)
+        self.banish_collection
+        @query.where(obj)
+        return self
     end
 
     def self.from_query(query, model)

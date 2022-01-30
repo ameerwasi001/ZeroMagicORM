@@ -46,7 +46,7 @@ class Query
             end
         end
         if @clauses.length > 0
-            initial += "WHERE #{clauses_arr.join(", ")} "
+            initial += "WHERE #{clauses_arr.join(" AND ")} "
         end
         if @limit_var != nil
             initial += "LIMIT #{@limit_var.to_s}"
