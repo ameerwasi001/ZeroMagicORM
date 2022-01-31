@@ -53,6 +53,12 @@ class Collection
         return self
     end
 
+    def limit(n)
+        self.banish_collection
+        @query.limit(n)
+        return self
+    end
+
     def self.from_query(query, model)
         this = new(nil, model)
         this.query = query
