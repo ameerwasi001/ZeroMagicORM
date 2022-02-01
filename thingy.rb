@@ -126,7 +126,7 @@ usr_migrations.migrate(dbAuth, schema, Platforms::POSTGRES)
 # print Posts.model, "\n"
 # print Messages.model, "\n"
 
-messages = Users.get({id: 3})[:posts].first[:user][:profile][:user][:sent_messages]
+messages = Users.get({id: 3})[:posts].first[:user][:profile][:user][:sent_messages].order_by(:id)
 for message in messages
     print message[:receiver], "\n"
 end

@@ -1,7 +1,7 @@
 require_relative 'table.rb'
 
 class Query
-    attr_accessor :limit_var, :clauses, :model
+    attr_accessor :limit_var, :clauses, :ordered_by, :model
 
     def initialize(model)
         @model = model.is_a?(TableDefintion::Table) ? model.init.model : model
@@ -33,6 +33,16 @@ class Query
         return self
     end
 
+    def order_by(by, desc)
+        keys = Set.new(@model.schema.to_dict[@model.name].table.obj.keys)
+        if (not @model.foreign_keys.include?(by.to_s[0...-4].to_sym)) and keys.include?(by.to_sym)
+            @ordered_by = by
+            @order_mode = desc ? "DESC" : "ASC"
+            return self
+        end
+        raise ArgumentError.new "Can only be ordered by non-foreign-key attributes, not '#{by}'"
+    end
+
     def to_sql
         initial = "SELECT * FROM #{@model.name}_ "
         clauses_arr = []
@@ -49,7 +59,10 @@ class Query
             initial += "WHERE #{clauses_arr.join(" AND ")} "
         end
         if @limit_var != nil
-            initial += "LIMIT #{@limit_var.to_s}"
+            initial += "LIMIT #{@limit_var.to_s} "
+        end
+        if @ordered_by != nil
+            initial += "ORDER BY #{@model.name}_.#{@ordered_by} #{@order_mode} "
         end
         return "#{initial};"
     end

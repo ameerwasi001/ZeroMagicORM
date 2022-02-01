@@ -59,6 +59,12 @@ class Collection
         return self
     end
 
+    def order_by(key, desc=true)
+        self.banish_collection
+        @query.order_by(key, desc)
+        return self
+    end
+
     def self.from_query(query, model)
         this = new(nil, model)
         this.query = query
@@ -333,12 +339,13 @@ class Record
 end
 
 class Model
-    attr_accessor :model, :name, :obj, :readonly_fields, :singulars, :schema, :back_refs
+    attr_accessor :model, :name, :obj, :readonly_fields, :singulars, :foreign_keys, :schema, :back_refs
 
     def initialize(name, schema)
         @name = name
         @readonly_fields = Set.new [:id]
         @auto_increment_fields = Set.new [:id]
+        @foreign_keys = Set.new
         @model = {}
         @schema = schema
         schema_dict = schema.to_dict
@@ -351,6 +358,7 @@ class Model
             @back_refs[v.back_ref] = k
         end
         for k, v in vertices
+            @foreign_keys.add(k)
             if v.is_singular
                 @singulars.add(k)
                 @model[k] = schema_dict[v.reference]
